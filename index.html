@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ARS Gallery | Professional Photography</title>
+  <meta name="description" content="ARS Gallery — Capturamos tu mejor momento. We capture your best moment. Professional photography for weddings, portraits, events and more." />
+  <meta property="og:title" content="ARS Gallery | Professional Photography" />
+  <meta property="og:description" content="Capturamos tu mejor momento — We capture your best moment." />
+  <meta property="og:image" content="images/ars_logo.jpg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="index.html" class="logo">
+        <img src="images/ars_logo.jpg" alt="ARS Gallery Logo" class="logo-img" />
+        <div class="logo-text">
+          <span class="logo-ars">ARS</span>
+          <span class="logo-gallery">Gallery</span>
+        </div>
+      </a>
+      <span class="nav-tag">Photography Studio</span>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="index.html" class="active">Home</a></li>
+        <li><a href="pages/about.html">About</a></li>
+        <li><a href="pages/services.html">Services</a></li>
+        <li><a href="pages/gallery.html">Gallery</a></li>
+        <li><a href="pages/testimonials.html">Packages</a></li>
+        <li><a href="pages/booking.html">Booking</a></li>
+        <li><a href="pages/contact.html">Contact</a></li>
+      </ul>
+      <a href="pages/booking.html" class="btn-book">Book Now</a>
+      <button class="burger" id="burger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <!-- Mobile Menu -->
+    <div class="mobile-nav" id="mobile-nav">
+      <ul>
+        <li><a href="index.html" class="mob-link active">Home</a></li>
+        <li><a href="pages/about.html" class="mob-link">About</a></li>
+        <li><a href="pages/services.html" class="mob-link">Services</a></li>
+        <li><a href="pages/gallery.html" class="mob-link">Gallery</a></li>
+        <li><a href="pages/testimonials.html" class="mob-link">Packages</a></li>
+        <li><a href="pages/booking.html" class="mob-link">Booking</a></li>
+        <li><a href="pages/contact.html" class="mob-link">Contact</a></li>
+      </ul>
+      <a href="pages/booking.html" class="btn-book mob-link">Book Now</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero" id="home">
+    <div class="hero-media">
+      <img src="images/hero_bg.png" alt="ARS Gallery" class="hero-bg-img" />
+      <div class="hero-veil"></div>
+    </div>
+    <div class="hero-body">
+      <span class="hero-badge">✦ Photography Studio</span>
+      <h1 class="hero-h1">
+        <em>Capturamos</em><br />
+        Tu Mejor<br />
+        <span class="gold-text">Momento</span>
+      </h1>
+      <p class="hero-sub">
+        We capture your best moment — timeless photography for<br />
+        weddings, portraits &amp; unforgettable events.
+      </p>
+      <div class="hero-btns">
+        <a href="#gallery" class="btn-primary">View Gallery</a>
+        <a href="https://www.facebook.com/p/Ars-Gallery-61563352197319/" target="_blank" class="btn-ghost">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          Facebook Page
+        </a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-item">
+          <span class="stat-n" data-to="1368">0</span><span class="stat-s">+</span>
+          <span class="stat-l">Followers</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-n" data-to="500">0</span><span class="stat-s">+</span>
+          <span class="stat-l">Happy Clients</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-n" data-to="3">0</span><span class="stat-s">+</span>
+          <span class="stat-l">Years Experience</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-n" data-to="100">0</span><span class="stat-s">%</span>
+          <span class="stat-l">Satisfaction</span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-scroll">
+      <div class="scroll-bar"></div>
+      <span>Scroll Down</span>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section class="about" id="about">
+    <div class="container">
+      <div class="about-wrap">
+        <div class="about-imgs">
+          <div class="aimg aimg-main">
+            <img src="images/ars_logo.jpg" alt="ARS Gallery" />
+          </div>
+          <div class="aimg aimg-sub">
+            <img src="images/gallery_couple.png" alt="ARS Gallery Work" />
+          </div>
+          <div class="about-badge-box">
+            <span class="abb-n">3+</span>
+            <span class="abb-t">Years of<br/>Excellence</span>
+          </div>
+        </div>
+        <div class="about-info">
+          <p class="tag">About ARS Gallery</p>
+          <h2>The Story Behind <em>Our Lens</em></h2>
+          <p class="about-p">
+            ARS Gallery was born from a deep passion for preserving life's most precious moments.
+            We believe that every photograph is more than an image — it's a portal back to the
+            emotions, laughter, and love that would otherwise fade with time.
+          </p>
+          <p class="about-p">
+            With over <strong>1,368 followers</strong> who trust our craft and hundreds of sessions
+            completed, we've built a reputation for delivering stunning imagery that tells your
+            unique story with heart and artistry.
+          </p>
+          <div class="about-feats">
+            <div class="feat">
+              <div class="feat-icon">📷</div>
+              <div>
+                <h4>Pro Equipment</h4>
+                <p>High-end camera gear for sharp results in any light</p>
+              </div>
+            </div>
+            <div class="feat">
+              <div class="feat-icon">⚡</div>
+              <div>
+                <h4>Fast Turnaround</h4>
+                <p>Edited photos delivered without compromising quality</p>
+              </div>
+            </div>
+            <div class="feat">
+              <div class="feat-icon">💛</div>
+              <div>
+                <h4>Passion-Driven</h4>
+                <p>We pour our heart into every single session</p>
+              </div>
+            </div>
+          </div>
+          <a href="https://www.facebook.com/p/Ars-Gallery-61563352197319/" target="_blank" class="btn-primary">Follow Us on Facebook ↗</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SERVICES -->
+  <section class="services" id="services">
+    <div class="container">
+      <div class="sec-head">
+        <p class="tag">What We Offer</p>
+        <h2>Our <em>Services</em></h2>
+        <p class="sec-desc">From intimate portraits to grand celebrations, every frame is composed with intention.</p>
+      </div>
+      <div class="svc-grid">
+        <div class="svc-card">
+          <div class="svc-icon">💍</div>
+          <h3>Wedding Photography</h3>
+          <p>Beautifully captured wedding stories from ceremony to every candid smile and tear of joy.</p>
+          <ul><li>Full-day coverage</li><li>Edited gallery</li><li>Premium albums</li></ul>
+          <a href="#contact" class="svc-link">Book →</a>
+        </div>
+        <div class="svc-card featured">
+          <div class="svc-badge">Most Popular</div>
+          <div class="svc-icon">🎭</div>
+          <h3>Portrait Sessions</h3>
+          <p>Studio and outdoor portraits that reveal your true personality, beauty, and unique story.</p>
+          <ul><li>Studio &amp; outdoor</li><li>Multiple looks</li><li>Quick delivery</li></ul>
+          <a href="#contact" class="svc-link">Book →</a>
+        </div>
+        <div class="svc-card">
+          <div class="svc-icon">🎉</div>
+          <h3>Event Coverage</h3>
+          <p>Birthdays, anniversaries, corporate events — every celebration deserves to be remembered.</p>
+          <ul><li>Any event size</li><li>Candid captures</li><li>Fast turnaround</li></ul>
+          <a href="#contact" class="svc-link">Book →</a>
+        </div>
+        <div class="svc-card">
+          <div class="svc-icon">👨‍👩‍👧</div>
+          <h3>Family Portraits</h3>
+          <p>Timeless family memories in beautiful settings that you and your loved ones will treasure forever.</p>
+          <ul><li>Natural settings</li><li>All ages welcome</li><li>Printed albums</li></ul>
+          <a href="#contact" class="svc-link">Book →</a>
+        </div>
+        <div class="svc-card">
+          <div class="svc-icon">📦</div>
+          <h3>Product Photography</h3>
+          <p>High-quality product shots that make your brand shine and convert customers.</p>
+          <ul><li>E-commerce ready</li><li>Creative styling</li><li>High resolution</li></ul>
+          <a href="#contact" class="svc-link">Book →</a>
+        </div>
+        <div class="svc-card">
+          <div class="svc-icon">🚁</div>
+          <h3>Aerial / Drone</h3>
+          <p>Breathtaking aerial shots adding a cinematic perspective to your events and properties.</p>
+          <ul><li>4K video</li><li>Wide coverage</li><li>Stunning views</li></ul>
+          <a href="#contact" class="svc-link">Book →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GALLERY -->
+  <section class="gallery" id="gallery">
+    <div class="container">
+      <div class="sec-head light">
+        <p class="tag">Our Work</p>
+        <h2>Photography <em>Gallery</em></h2>
+        <p class="sec-desc">A curated look at moments we've had the privilege of capturing.</p>
+      </div>
+      <!-- Facebook Embed Notice -->
+      <div class="fb-notice">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        <span>Photos sourced from our <a href="https://www.facebook.com/p/Ars-Gallery-61563352197319/" target="_blank">Facebook Page</a> — follow us to see more!</span>
+      </div>
+      <div class="gal-filters">
+        <button class="gf active" data-f="all">All</button>
+        <button class="gf" data-f="wedding">Wedding</button>
+        <button class="gf" data-f="portrait">Portrait</button>
+        <button class="gf" data-f="event">Events</button>
+        <button class="gf" data-f="couple">Couples</button>
+      </div>
+      <div class="gal-grid" id="gal-grid">
+        <div class="gal-item" data-cat="portrait">
+          <img src="images/ars_logo.jpg" alt="ARS Gallery Portrait" loading="lazy" />
+          <div class="gal-ov">
+            <h4>ARS Gallery</h4>
+            <p>Professional Photography</p>
+            <button onclick="lb(this)" data-s="images/ars_logo.jpg">View ⊕</button>
+          </div>
+        </div>
+        <div class="gal-item tall" data-cat="wedding">
+          <img src="images/gallery_wedding.png" alt="Wedding" loading="lazy" />
+          <div class="gal-ov">
+            <h4>Wedding Moments</h4>
+            <p>Timeless Love Stories</p>
+            <button onclick="lb(this)" data-s="images/gallery_wedding.png">View ⊕</button>
+          </div>
+        </div>
+        <div class="gal-item" data-cat="portrait">
+          <img src="images/gallery_portrait.png" alt="Portrait" loading="lazy" />
+          <div class="gal-ov">
+            <h4>Portrait Session</h4>
+            <p>Capturing True Beauty</p>
+            <button onclick="lb(this)" data-s="images/gallery_portrait.png">View ⊕</button>
+          </div>
+        </div>
+        <div class="gal-item wide" data-cat="couple">
+          <img src="images/gallery_couple.png" alt="Couple" loading="lazy" />
+          <div class="gal-ov">
+            <h4>Couple Shoot</h4>
+            <p>Love in Every Frame</p>
+            <button onclick="lb(this)" data-s="images/gallery_couple.png">View ⊕</button>
+          </div>
+        </div>
+        <div class="gal-item" data-cat="event">
+          <img src="images/gallery_event.png" alt="Event" loading="lazy" />
+          <div class="gal-ov">
+            <h4>Event Photography</h4>
+            <p>Every Celebration Counts</p>
+            <button onclick="lb(this)" data-s="images/gallery_event.png">View ⊕</button>
+          </div>
+        </div>
+        <div class="gal-item" data-cat="wedding">
+          <img src="images/gallery_wedding.png" alt="Wedding" loading="lazy" />
+          <div class="gal-ov">
+            <h4>Sacred Moments</h4>
+            <p>Wedding Ceremonies</p>
+            <button onclick="lb(this)" data-s="images/gallery_wedding.png">View ⊕</button>
+          </div>
+        </div>
+        <div class="gal-item tall" data-cat="portrait">
+          <img src="images/gallery_portrait.png" alt="Portrait" loading="lazy" />
+          <div class="gal-ov">
+            <h4>Studio Portraits</h4>
+            <p>Professional Headshots</p>
+            <button onclick="lb(this)" data-s="images/gallery_portrait.png">View ⊕</button>
+          </div>
+        </div>
+        <div class="gal-item" data-cat="couple">
+          <img src="images/gallery_couple.png" alt="Couple" loading="lazy" />
+          <div class="gal-ov">
+            <h4>Romantic Shoot</h4>
+            <p>Golden Hour Magic</p>
+            <button onclick="lb(this)" data-s="images/gallery_couple.png">View ⊕</button>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center; margin-top: 3rem;">
+        <a href="https://www.facebook.com/p/Ars-Gallery-61563352197319/" target="_blank" class="btn-outline-gold">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          See Full Portfolio on Facebook
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="testi" id="testimonials">
+    <div class="container">
+      <div class="sec-head">
+        <p class="tag">Client Love</p>
+        <h2>What Our <em>Clients Say</em></h2>
+        <p class="sec-desc">Real words from real people who trusted us with their most precious moments.</p>
+      </div>
+      <div class="testi-slider">
+        <div class="testi-track" id="ttrack">
+          <div class="tcard">
+            <div class="tstars">★★★★★</div>
+            <p>"ARS Gallery captured every beautiful moment of our wedding perfectly. Their eye for detail and ability to catch candid emotions is truly outstanding. Every photo tells our love story!"</p>
+            <div class="tauthor">
+              <div class="tav">S</div>
+              <div><strong>Sarah &amp; Michael</strong><span>Wedding Clients</span></div>
+            </div>
+          </div>
+          <div class="tcard">
+            <div class="tstars">★★★★★</div>
+            <p>"The portrait session was an absolute joy! They made me feel so comfortable and the results were beyond my expectations. Professional, creative, and genuinely talented!"</p>
+            <div class="tauthor">
+              <div class="tav">A</div>
+              <div><strong>Amelia Torres</strong><span>Portrait Client</span></div>
+            </div>
+          </div>
+          <div class="tcard">
+            <div class="tstars">★★★★★</div>
+            <p>"They photographed our company event and the results were spectacular. Quick delivery, professional approach, and photos that truly captured the energy of the day!"</p>
+            <div class="tauthor">
+              <div class="tav">R</div>
+              <div><strong>Ricardo Mendez</strong><span>Corporate Event</span></div>
+            </div>
+          </div>
+          <div class="tcard">
+            <div class="tstars">★★★★★</div>
+            <p>"Our family portrait session was magical! The photographer knew exactly how to capture genuine smiles and real moments. These photos will be treasured for generations."</p>
+            <div class="tauthor">
+              <div class="tav">L</div>
+              <div><strong>The Lopez Family</strong><span>Family Portrait</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="tctrl">
+          <button id="tprev" aria-label="Previous">←</button>
+          <div class="tdots" id="tdots">
+            <span class="tdot active" data-i="0"></span>
+            <span class="tdot" data-i="1"></span>
+            <span class="tdot" data-i="2"></span>
+            <span class="tdot" data-i="3"></span>
+          </div>
+          <button id="tnext" aria-label="Next">→</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq" id="faq">
+    <div class="container">
+      <div class="sec-head">
+        <p class="tag">FAQs</p>
+        <h2>Common <em>Questions</em></h2>
+        <p class="sec-desc">Everything you need to know before booking your session with us.</p>
+      </div>
+      <div class="faq-list">
+        <div class="faq-item">
+          <button class="faq-q">How far in advance should I book? <span>+</span></button>
+          <div class="faq-a"><p>For weddings, we recommend booking 2–4 months in advance as dates fill up quickly. For portrait and event sessions, 2–4 weeks notice is usually sufficient. Contact us early to secure your preferred date!</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">What areas do you cover? <span>+</span></button>
+          <div class="faq-a"><p>We cover a wide area for sessions and events. Travel costs may apply for distant locations. Contact us to discuss your specific needs and we'll find the best solution.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">How long before I receive my photos? <span>+</span></button>
+          <div class="faq-a"><p>Wedding highlights are delivered within 1 week. Full edited wedding galleries within 3–5 weeks. Portrait and event sessions within 1–2 weeks. All photos are delivered via a private online gallery link.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">What is the payment process? <span>+</span></button>
+          <div class="faq-a"><p>A deposit is required to confirm and secure your booking date. The remaining balance is due on the shoot day. We accept bank transfers and cash payments. Contact us for a detailed quote.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">Can I share my ideas and vision? <span>+</span></button>
+          <div class="faq-a"><p>Absolutely! We love when clients share mood boards, Pinterest boards, or specific ideas before the session. We'll incorporate your vision while adding our own creative touch for something truly unique.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">What if the weather is bad for outdoor shoots? <span>+</span></button>
+          <div class="faq-a"><p>For outdoor portrait sessions, we can reschedule at no extra charge if the weather is unsuitable. For weddings and events, we always have a backup plan and the skill to create beautiful results in any conditions.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="contact" id="contact">
+    <div class="container">
+      <div class="sec-head">
+        <p class="tag">Get In Touch</p>
+        <h2>Book Your <em>Session</em></h2>
+        <p class="sec-desc">Ready to create beautiful memories? Let's talk about your vision.</p>
+      </div>
+      <div class="contact-wrap">
+        <div class="contact-left">
+          <div class="cinfo-item">
+            <div class="cicon">📘</div>
+            <div>
+              <strong>Facebook</strong>
+              <a href="https://www.facebook.com/p/Ars-Gallery-61563352197319/" target="_blank">ARS Gallery — Follow us!</a>
+            </div>
+          </div>
+          <div class="cinfo-item">
+            <div class="cicon">📸</div>
+            <div>
+              <strong>Instagram</strong>
+              <a href="#">@arsgallery</a>
+            </div>
+          </div>
+          <div class="cinfo-item">
+            <div class="cicon">📞</div>
+            <div>
+              <strong>Call / WhatsApp</strong>
+              <a href="tel:+1234567890">+1 234 567 890</a>
+            </div>
+          </div>
+          <div class="cinfo-item">
+            <div class="cicon">🕐</div>
+            <div>
+              <strong>Availability</strong>
+              <span>7 days a week, by appointment</span>
+            </div>
+          </div>
+          <!-- FB Page embed widget -->
+          <div class="fb-widget">
+            <div class="fb-page-box">
+              <div class="fb-page-header">
+                <img src="images/ars_logo.jpg" alt="ARS Gallery" />
+                <div>
+                  <strong>ARS Gallery</strong>
+                  <span>Photography Studio</span>
+                </div>
+              </div>
+              <p class="fb-quote">"Capturamos tu mejor momento" 📸</p>
+              <div class="fb-stats">
+                <div><strong>1,368</strong><span>Followers</span></div>
+                <div><strong>212</strong><span>Talking</span></div>
+                <div><strong>5★</strong><span>Rating</span></div>
+              </div>
+              <a href="https://www.facebook.com/p/Ars-Gallery-61563352197319/" target="_blank" class="fb-follow-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                Follow on Facebook
+              </a>
+            </div>
+          </div>
+        </div>
+        <form class="cform" id="cform">
+          <div class="frow">
+            <div class="fg">
+              <label for="fname">Your Name</label>
+              <input type="text" id="fname" placeholder="John Doe" required />
+            </div>
+            <div class="fg">
+              <label for="femail">Email Address</label>
+              <input type="email" id="femail" placeholder="you@email.com" required />
+            </div>
+          </div>
+          <div class="frow">
+            <div class="fg">
+              <label for="fphone">Phone Number</label>
+              <input type="tel" id="fphone" placeholder="+1 234 567 890" />
+            </div>
+            <div class="fg">
+              <label for="fservice">Service</label>
+              <select id="fservice">
+                <option value="">Select a service...</option>
+                <option>Wedding Photography</option>
+                <option>Portrait Session</option>
+                <option>Event Coverage</option>
+                <option>Family Portrait</option>
+                <option>Product Photography</option>
+                <option>Aerial / Drone</option>
+              </select>
+            </div>
+          </div>
+          <div class="fg full">
+            <label for="fdate">Preferred Date</label>
+            <input type="date" id="fdate" />
+          </div>
+          <div class="fg full">
+            <label for="fmsg">Your Vision</label>
+            <textarea id="fmsg" rows="4" placeholder="Tell us about your session ideas, special requests, or any details..."></textarea>
+          </div>
+          <button type="submit" class="btn-primary full-btn">Send Message ✨</button>
+          <div class="fsuccess" id="fsuccess">✅ Thank you! We'll get back to you soon.</div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="foot-logo">
+          <img src="images/ars_logo.jpg" alt="ARS Gallery" />
+          <div>
+            <span class="logo-ars">ARS</span>
+            <span class="logo-gallery">Gallery</span>
+          </div>
+        </div>
+        <p>"Capturamos tu mejor momento" — We capture your best moment, every time.</p>
+        <div class="foot-social">
+          <a href="https://www.facebook.com/p/Ars-Gallery-61563352197319/" target="_blank" aria-label="Facebook">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          </a>
+          <a href="#" aria-label="Instagram">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+          </a>
+          <a href="#" aria-label="WhatsApp">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          </a>
+        </div>
+      </div>
+      <div class="foot-nav">
+        <div class="fn-col">
+          <h5>Navigation</h5>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="pages/about.html">About</a></li>
+            <li><a href="pages/services.html">Services</a></li>
+            <li><a href="pages/gallery.html">Gallery</a></li>
+            <li><a href="pages/contact.html">Contact</a></li>
+          </ul>
+        </div>
+        <div class="fn-col">
+          <h5>Services</h5>
+          <ul>
+            <li><a href="pages/services.html">Wedding Photography</a></li>
+            <li><a href="pages/services.html">Portrait Sessions</a></li>
+            <li><a href="pages/services.html">Event Coverage</a></li>
+            <li><a href="pages/services.html">Family Portraits</a></li>
+            <li><a href="pages/services.html">Aerial / Drone</a></li>
+          </ul>
+        </div>
+        <div class="fn-col">
+          <h5>Connect</h5>
+          <ul>
+            <li><a href="https://www.facebook.com/p/Ars-Gallery-61563352197319/" target="_blank">Facebook Page</a></li>
+            <li><a href="#">Instagram</a></li>
+            <li><a href="#">WhatsApp</a></li>
+            <li><a href="pages/contact.html">Book a Session</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <p>© 2026 ARS Gallery. All rights reserved. | Crafted with ❤️ &amp; passion.</p>
+      <a href="https://www.facebook.com/p/Ars-Gallery-61563352197319/" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        ARS Gallery on Facebook
+      </a>
+    </div>
+  </footer>
+
+  <!-- LIGHTBOX -->
+  <div class="lightbox" id="lightbox">
+    <div class="lb-bg" onclick="closeLb()"></div>
+    <div class="lb-box">
+      <button class="lb-close" onclick="closeLb()">✕</button>
+      <img id="lb-img" src="" alt="Gallery" />
+    </div>
+  </div>
+
+  <!-- BACK TO TOP -->
+  <button class="btt" id="btt" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top">↑</button>
+
+  <script src="script.js"></script>
+</body>
+</html>

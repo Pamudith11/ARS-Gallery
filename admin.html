@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard | ARS Gallery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="index.html" class="logo">
+        <img src="images/ars_logo.jpg" alt="ARS Gallery Logo" class="logo-img" />
+        <div class="logo-text">
+          <span class="logo-ars">ARS</span>
+          <span class="logo-gallery">Gallery</span>
+        </div>
+      </a>
+      <span class="nav-tag">Photography Studio</span>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="pages/about.html">About</a></li>
+        <li><a href="pages/services.html">Services</a></li>
+        <li><a href="pages/gallery.html">Gallery</a></li>
+        <li><a href="pages/testimonials.html">Packages</a></li>
+        <li><a href="pages/booking.html">Booking</a></li>
+        <li><a href="admin.html" class="active">Admin</a></li>
+      </ul>
+      <a href="pages/booking.html" class="btn-book">Book Now</a>
+      <button class="burger" id="burger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <div class="mobile-nav" id="mobile-nav">
+      <ul>
+        <li><a href="index.html" class="mob-link">Home</a></li>
+        <li><a href="pages/about.html" class="mob-link">About</a></li>
+        <li><a href="pages/services.html" class="mob-link">Services</a></li>
+        <li><a href="pages/gallery.html" class="mob-link">Gallery</a></li>
+        <li><a href="pages/testimonials.html" class="mob-link">Testimonials</a></li>
+        <li><a href="pages/booking.html" class="mob-link">Booking</a></li>
+        <li><a href="admin.html" class="mob-link">Admin</a></li>
+      </ul>
+      <a href="pages/booking.html" class="btn-book mob-link">Book Now</a>
+    </div>
+  </nav>
+
+  <main>
+    <section class="page-hero page-hero-contact">
+      <div class="page-hero-inner">
+        <p class="tag">Dashboard</p>
+        <h1>Admin <em>Control</em> Panel</h1>
+      </div>
+    </section>
+
+    <section class="page-section contact">
+      <div class="container admin-grid">
+        <div class="admin-panel">
+          <h3>Add Category</h3>
+          <form id="categoryForm" class="admin-form">
+            <input id="categoryName" type="text" placeholder="Add category e.g. Graduation" required />
+            <button type="submit" class="btn-primary">Add Category</button>
+          </form>
+
+          <div class="admin-list" id="adminCategoryList"></div>
+        </div>
+
+        <div class="admin-panel">
+          <h3>Add Album Photo</h3>
+          <form id="albumForm" class="admin-form">
+            <select id="albumCategory"></select>
+            <input id="albumTitle" type="text" placeholder="Album title" required />
+            <input id="albumDescription" type="text" placeholder="Short description" />
+
+            <div class="drop-zone" id="dropZone" tabindex="0" aria-label="Upload album images">
+              <input id="albumImages" type="file" accept="image/*" multiple hidden />
+              <div class="drop-zone-inner">
+                <span class="drop-icon">⇪</span>
+                <strong>Drag &amp; drop images here</strong>
+                <p>or click to choose files</p>
+              </div>
+            </div>
+
+            <div id="albumPreviewList" class="album-preview-list"></div>
+
+            <input id="albumImage" type="text" placeholder="Or paste one image path (optional)" />
+            <button type="submit" class="btn-primary">Add Album</button>
+          </form>
+
+          <div class="admin-list" id="adminAlbumList"></div>
+        </div>
+
+        <div class="admin-panel full-width">
+          <h3>Bookings</h3>
+          <div class="admin-list" id="adminBookingList"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="foot-logo">
+          <img src="images/ars_logo.jpg" alt="ARS Gallery" />
+          <div>
+            <span class="logo-ars">ARS</span>
+            <span class="logo-gallery">Gallery</span>
+          </div>
+        </div>
+        <p>“Capturamos tu mejor momento” — We capture your best moment, every time.</p>
+      </div>
+      <div class="foot-nav">
+        <div class="fn-col">
+          <h5>Navigation</h5>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="pages/about.html">About</a></li>
+            <li><a href="pages/services.html">Services</a></li>
+          </ul>
+        </div>
+        <div class="fn-col">
+          <h5>Connect</h5>
+          <ul>
+            <li><a href="pages/booking.html">Book a Session</a></li>
+            <li><a href="pages/gallery.html">Gallery</a></li>
+            <li><a href="pages/contact.html">Contact</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <p>© 2026 ARS Gallery. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+  <script>
+    const categoryForm = document.getElementById('categoryForm');
+    const categoryName = document.getElementById('categoryName');
+    const albumForm = document.getElementById('albumForm');
+    const albumCategory = document.getElementById('albumCategory');
+    const albumTitle = document.getElementById('albumTitle');
+    const albumDescription = document.getElementById('albumDescription');
+    const albumImage = document.getElementById('albumImage');
+    const albumImages = document.getElementById('albumImages');
+    const dropZone = document.getElementById('dropZone');
+    const albumPreviewList = document.getElementById('albumPreviewList');
+
+    if (categoryForm) {
+      categoryForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        addGalleryCategory(categoryName.value);
+        categoryForm.reset();
+      });
+    }
+
+    if (albumForm) {
+      albumForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const albumData = {
+          category: albumCategory.value,
+          title: albumTitle.value,
+          description: albumDescription.value,
+          image: albumImage.value
+        };
+        addGalleryAlbum(albumData);
+        albumForm.reset();
+        albumPreviewList.innerHTML = '';
+      });
+    }
+
+    dropZone.addEventListener('click', () => {
+      albumImages.click();
+    });
+
+    albumImages.addEventListener('change', (event) => {
+      handleImageUpload(event.target.files);
+    });
+
+    function handleImageUpload(files) {
+      const fileArray = Array.from(files);
+      albumPreviewList.innerHTML = '';
+      fileArray.forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const imgElement = document.createElement('img');
+          imgElement.src = e.target.result;
+          imgElement.classList.add('preview-image');
+          albumPreviewList.appendChild(imgElement);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    renderAdminDashboard();
+  </script>
+</body>
+</html>

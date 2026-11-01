@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact | ARS Gallery</title>
+  <link rel="preconnect
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="../index.html" class="logo">
+        <img src="../images/ars_logo.jpg" alt="ARS Gallery Logo" class="logo-img" />
+        <div class="logo-text">
+          <span class="logo-ars">ARS</span>
+          <span class="logo-gallery">Gallery</span>
+        </div>
+      </a>
+      <span class="nav-tag">Photography Studio</span>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="../index.html">Home</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="services.html">Services</a></li>
+        <li><a href="gallery.html">Gallery</a></li>
+        <li><a href="testimonials.html">Packages</a></li>
+        <li><a href="booking.html">Booking</a></li>
+        <li><a href="contact.html" class="active">Contact</a></li>
+      </ul>
+      <a href="booking.html" class="btn-book">Book Now</a>
+      <button class="burger" id="burger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <div class="mobile-nav" id="mobile-nav">
+      <ul>
+        <li><a href="../index.html" class="mob-link">Home</a></li>
+        <li><a href="about.html" class="mob-link">About</a></li>
+        <li><a href="services.html" class="mob-link">Services</a></li>
+        <li><a href="gallery.html" class="mob-link">Gallery</a></li>
+        <li><a href="testimonials.html" class="mob-link">Testimonials</a></li>
+        <li><a href="booking.html" class="mob-link">Booking</a></li>
+        <li><a href="contact.html" class="mob-link">Contact</a></li>
+      </ul>
+      <a href="booking.html" class="btn-book mob-link">Book Now</a>
+    </div>
+  </nav>
+
+  <main>
+    <section class="page-hero page-hero-contact">
+      <div class="page-hero-inner">
+        <p class="tag">Get In Touch</p>
+        <h1>Book Your <em>Session</em></h1>
+      </div>
+    </section>
+
+    <section class="contact page-section">
+      <div class="container">
+        <div class="contact-wrap">
+          <div class="contact-left">
+            <div class="cinfo-item">
+              <div class="cicon">📘</div>
+              <div>
+                <strong>Facebook</strong>
+                <a href="https://www.facebook.com/p/Ars-Gallery-61563352197319/" target="_blank">ARS Gallery — Follow us!</a>
+              </div>
+            </div>
+            <div class="cinfo-item">
+              <div class="cicon">📸</div>
+              <div>
+                <strong>Instagram</strong>
+                <a href="#">@arsgallery</a>
+              </div>
+            </div>
+            <div class="cinfo-item">
+              <div class="cicon">📞</div>
+              <div>
+                <strong>Call / WhatsApp</strong>
+                <a href="tel:+1234567890">+1 234 567 890</a>
+              </div>
+            </div>
+            <div class="cinfo-item">
+              <div class="cicon">🕐</div>
+              <div>
+                <strong>Availability</strong>
+                <span>7 days a week, by appointment</span>
+              </div>
+            </div>
+            <div class="fb-widget">
+              <div class="fb-page-box">
+                <div class="fb-page-header">
+                  <img src="../images/ars_logo.jpg" alt="ARS Gallery" />
+                  <div>
+                    <strong>ARS Gallery</strong>
+                    <span>Photography Studio</span>
+                  </div>
+                </div>
+                <p class="fb-quote">“Capturamos tu mejor momento” 📸</p>
+                <div class="fb-stats">
+                  <div><strong>1,368</strong><span>Followers</span></div>
+                  <div><strong>212</strong><span>Talking</span></div>
+                  <div><strong>5★</strong><span>Rating</span></div>
+                </div>
+                <a href="https://www.facebook.com/p/Ars-Gallery-61563352197319/" target="_blank" class="fb-follow-btn">Follow on Facebook</a>
+              </div>
+            </div>
+          </div>
+
+          <form class="cform" id="cform">
+            <div class="frow">
+              <div class="fg">
+                <label for="fname">Your Name</label>
+                <input type="text" id="fname" placeholder="John Doe" required />
+              </div>
+              <div class="fg">
+                <label for="femail">Email Address</label>
+                <input type="email" id="femail" placeholder="you@email.com" required />
+              </div>
+            </div>
+            <div class="frow">
+              <div class="fg">
+                <label for="fphone">Phone Number</label>
+                <input type="tel" id="fphone" placeholder="+1 234 567 890" />
+              </div>
+              <div class="fg">
+                <label for="fservice">Service</label>
+                <select id="fservice">
+                  <option value="">Select a service...</option>
+                  <option>Wedding Photography</option>
+                  <option>Portrait Session</option>
+                  <option>Event Coverage</option>
+                  <option>Family Portrait</option>
+                  <option>Product Photography</option>
+                  <option>Aerial / Drone</option>
+                </select>
+              </div>
+            </div>
+            <div class="fg full">
+              <label for="fdate">Preferred Date</label>
+              <input type="date" id="fdate" />
+            </div>
+            <div class="fg full">
+              <label for="fmsg">Your Vision</label>
+              <textarea id="fmsg" rows="4" placeholder="Tell us about your session ideas, special requests, or any details..."></textarea>
+            </div>
+            <button type="submit" class="btn-primary full-btn">Send Message ✨</button>
+            <div class="fsuccess" id="fsuccess">✅ Thank you! We'll get back to you soon.</div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="foot-logo">
+          <img src="../images/ars_logo.jpg" alt="ARS Gallery" />
+          <div>
+            <span class="logo-ars">ARS</span>
+            <span class="logo-gallery">Gallery</span>
+          </div>
+        </div>
+        <p>“Capturamos tu mejor momento” — We capture your best moment, every time.</p>
+        <div class="foot-social">
+          <a href="https://www.facebook.com/p/Ars-Gallery-61563352197319/" target="_blank" aria-label="Facebook">f</a>
+          <a href="#" aria-label="Instagram">◎</a>
+          <a href="#" aria-label="WhatsApp">✆</a>
+        </div>
+      </div>
+      <div class="foot-nav">
+        <div class="fn-col">
+          <h5>Navigation</h5>
+          <ul>
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><a href="services.html">Services</a></li>
+            <li><a href="gallery.html">Gallery</a></li>
+          </ul>
+        </div>
+        <div class="fn-col">
+          <h5>Connect</h5>
+          <ul>
+            <li><a href="booking.html">Book a Session</a></li>
+            <li><a href="testimonials.html">Reviews</a></li>
+            <li><a href="https://www.facebook.com/p/Ars-Gallery-61563352197319/" target="_blank">Facebook</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <p>© 2026 ARS Gallery. All rights reserved.</p>
+      <a href="https://www.facebook.com/p/Ars-Gallery-61563352197319/" target="_blank">ARS Gallery on Facebook</a>
+    </div>
+  </footer>
+
+  <button class="btt" id="btt" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top">↑</button>
+  <script src="../script.js"></script>
+</body>
+</html>
