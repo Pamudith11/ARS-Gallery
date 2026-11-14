@@ -91,25 +91,15 @@ const STORAGE_KEYS = {
   bookings: 'ars_gallery_bookings'
 };
 
-const FIREBASE_CONFIG = {
-  apiKey: 'AIzaSyA9v_MxMcfPwCjV0uieu6816Ptt_0_9C6k',
-  authDomain: 'ars-gallery-9ea0e.firebaseapp.com',
-  projectId: 'ars-gallery-9ea0e',
-  storageBucket: 'ars-gallery-9ea0e.firebasestorage.app',
-  messagingSenderId: '939333410954',
-  appId: '1:939333410954:web:451314291ba35822d58d73',
-  measurementId: 'G-ZTE8Z9Z3EY'
-};
-const FIREBASE_VERSION = '11.10.0';
-const ADMIN_EMAIL = 'pamudith11@gmail.com';
+let firebaseClient;
 let firebaseApp;
 let firebaseAuth;
 let firestore;
 let firebaseAuthModule;
 let firestoreModule;
 let firebaseCurrentUser = null;
-let pendingSignInCallback = null;
 let firebaseReady;
+let firebaseAuthStateReady;
 let stopAdminListeners = [];
 let firebaseAdminBookings = null;
 let firebaseAdminUsers = null;
@@ -580,26 +570,16 @@ async function persistBooking(data) {
 
 function updateAuthLinks() {
   const user = getSignedInUser();
+  const rootPrefix = /\/pages\//i.test(window.location.pathname) ? '../' : '';
+  const isAdminPage = document.body && document.body.getAttribute('data-admin-page') === 'true';
   document.querySelectorAll('[data-sign-in-link]').forEach((link) => {
     link.textContent = user ? 'Sign Out' : 'Sign In';
     link.title = user ? `Signed in as ${user.email}` : 'Sign in to book a session';
     link.setAttribute('aria-label', user ? `Sign out ${user.email}` : 'Sign in');
+    link.href = user
+      ? '#sign-out'
+      : `${rootPrefix}signin.html${isAdminPage ? '?returnTo=admin.html' : ''}`;
   });
-}
-
-function openSignInModal(callback) {
-  pendingSignInCallback = typeof callback === 'function' ? callback : null;
-  const modal = document.getElementById('authModal');
-  if (modal) {
-    modal.hidden = false;
-    document.getElementById('googleSignInButton').focus();
-  }
-}
-
-function closeSignInModal() {
-  const modal = document.getElementById('authModal');
-  if (modal) modal.hidden = true;
-  pendingSignInCallback = null;
 }
 
 function closeMobileMenu() {
@@ -609,13 +589,6 @@ function closeMobileMenu() {
     span.style.transform = '';
     span.style.opacity = '';
   });
-}
-
-function setAuthMessage(message, isError) {
-  const messageElement = document.getElementById('authMessage');
-  if (!messageElement) return;
-  messageElement.textContent = message || '';
-  messageElement.classList.toggle('auth-error', Boolean(isError));
 }
 
 function setAdminMessage(message, isError) {
@@ -662,69 +635,53 @@ function listenForAdminData() {
 }
 
 async function handleFirebaseAuthState(user) {
-  const wasSignedIn = Boolean(firebaseCurrentUser);
   firebaseCurrentUser = user;
   updateAuthLinks();
   const isAdminPage = document.body && document.body.getAttribute('data-admin-page') === 'true';
   if (!user) {
-    if (wasSignedIn) pendingSignInCallback = null;
     stopAdminDataListeners();
-    setAdminMessage(isAdminPage ? 'Sign in with the admin Google account to open this dashboard.' : '', false);
+    setAdminMessage(isAdminPage
+      ? 'Sign in with the admin Google account to open this dashboard.'
+      : '', false);
     return;
   }
 
   try {
-    await firestoreModule.setDoc(firestoreModule.doc(firestore, 'users', user.uid), {
-      uid: user.uid,
-      displayName: user.displayName || '',
-      email: user.email || '',
-      photoURL: user.photoURL || '',
-      lastSeenAt: firestoreModule.serverTimestamp()
-    }, { merge: true });
-    setAuthMessage('', false);
+    await firebaseClient.recordSignedInUser(user, { firestore, firestoreModule });
   } catch (error) {
-    setAuthMessage(`Signed in, but login activity could not be saved: ${error.message}`, true);
+    if (isAdminPage) setAdminMessage(`Could not update sign-in activity: ${error.message}`, true);
   }
 
-  const isAdmin = user.email && user.email.toLowerCase() === ADMIN_EMAIL;
+  const isAdmin = user.email && user.email.toLowerCase() === firebaseClient.adminEmail;
   if (isAdminPage) {
     if (!isAdmin) {
       stopAdminDataListeners();
-      setAdminMessage(`Access denied. Sign in with ${ADMIN_EMAIL} to use the admin panel.`, true);
+      setAdminMessage(`Access denied. Sign in with ${firebaseClient.adminEmail} to use the admin panel.`, true);
       return;
     }
     setAdminMessage('', false);
     listenForAdminData();
   }
-
-  const callback = pendingSignInCallback;
-  pendingSignInCallback = null;
-  if (callback) {
-    try {
-      callback();
-    } catch (error) {
-      setAuthMessage(`Sign-in succeeded, but the requested action failed: ${error.message}`, true);
-    }
-  }
 }
 
 async function initializeFirebase() {
-  if (location.protocol === 'file:') {
-    throw new Error('Google sign-in requires localhost or an HTTPS website; open this project through a web server.');
-  }
-  const baseUrl = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}`;
-  const [appModule, authModule, dbModule] = await Promise.all([
-    import(`${baseUrl}/firebase-app.js`),
-    import(`${baseUrl}/firebase-auth.js`),
-    import(`${baseUrl}/firebase-firestore.js`)
-  ]);
-  firebaseApp = appModule.getApps().length ? appModule.getApp() : appModule.initializeApp(FIREBASE_CONFIG);
-  firebaseAuthModule = authModule;
-  firestoreModule = dbModule;
-  firebaseAuth = authModule.getAuth(firebaseApp);
-  firestore = dbModule.getFirestore(firebaseApp);
-  authModule.onAuthStateChanged(firebaseAuth, handleFirebaseAuthState, (error) => {
-    setAuthMessage(`Firebase sign-in error: ${error.message}`, true);
+  firebaseClient = await import('./firebase-client.js');
+  const services = await firebaseClient.getFirebaseServices();
+  firebaseApp = services.app;
+  firebaseAuth = services.auth;
+  firestore = services.firestore;
+  firebaseAuthModule = services.authModule;
+  firestoreModule = services.firestoreModule;
+  firebaseAuthStateReady = new Promise((resolve) => {
+    firebaseAuthModule.onAuthStateChanged(firebaseAuth, (user) => {
+      handleFirebaseAuthState(user);
+      resolve(user);
+    }, (error) => {
+      if (document.body && document.body.getAttribute('data-admin-page') === 'true') {
+        setAdminMessage(`Firebase sign-in error: ${error.message}`, true);
+      }
+      resolve(null);
+    });
   });
 }
 
@@ -732,96 +689,47 @@ function initializeFirebaseAuthUI() {
   const rootPrefix = /\/pages\//i.test(window.location.pathname) ? '../' : '';
   const desktopNav = document.querySelector('#nav-links');
   const mobileNavList = document.querySelector('#mobile-nav ul');
-  const adminPath = new URL(`${rootPrefix}admin.html`, window.location.href).pathname;
 
   [desktopNav, mobileNavList].forEach((navList) => {
     if (!navList) return;
-    navList.querySelectorAll('a').forEach((link) => {
-      const item = link.closest('li');
-      if (new URL(link.href).pathname === adminPath && item) item.remove();
-    });
-
     const authItem = document.createElement('li');
-    authItem.innerHTML = `<a href="#sign-in" class="nav-auth-link${navList === mobileNavList ? ' mob-link' : ''}" data-sign-in-link>Sign In</a>`;
+    authItem.innerHTML = `<a href="${rootPrefix}signin.html" class="nav-auth-link${navList === mobileNavList ? ' mob-link' : ''}" data-sign-in-link>Sign In</a>`;
     navList.appendChild(authItem);
-  });
-
-  const modal = document.createElement('div');
-  modal.id = 'authModal';
-  modal.className = 'auth-modal';
-  modal.hidden = true;
-  modal.innerHTML = `
-    <div class="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="authTitle">
-      <button type="button" class="auth-close" aria-label="Close sign-in dialog">&times;</button>
-      <p class="tag">ARS Gallery</p>
-      <h2 id="authTitle">Sign in to continue</h2>
-      <p class="auth-demo-note">Sign in with your Google account to book a session.</p>
-      <p id="authMessage" class="auth-message" role="status"></p>
-      <button id="googleSignInButton" type="button" class="google-sign-in">
-        <span class="google-mark" aria-hidden="true">G</span>
-        Continue with Google
-      </button>
-      <a class="auth-admin-link" href="${rootPrefix}admin.html">Admin Panel</a>
-    </div>
-  `;
-  document.body.appendChild(modal);
-
-  modal.addEventListener('click', (event) => {
-    if (event.target === modal || event.target.closest('.auth-close')) closeSignInModal();
   });
 
   document.querySelectorAll('#mobile-nav .mob-link').forEach((link) => {
     link.addEventListener('click', closeMobileMenu);
   });
 
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeSignInModal();
-  });
-
   document.querySelectorAll('[data-sign-in-link]').forEach((link) => {
     link.addEventListener('click', (event) => {
+      if (!getSignedInUser()) return;
       event.preventDefault();
       if (link.classList.contains('mob-link')) closeMobileMenu();
-      if (getSignedInUser()) {
-        if (firebaseAuth && firebaseAuthModule) {
-          firebaseAuthModule.signOut(firebaseAuth).catch((error) => {
-            setAuthMessage(`Could not sign out: ${error.message}`, true);
-            openSignInModal();
-          });
+      firebaseAuthModule.signOut(firebaseAuth).catch((error) => {
+        if (document.body && document.body.getAttribute('data-admin-page') === 'true') {
+          setAdminMessage(`Could not sign out: ${error.message}`, true);
+        } else {
+          window.alert(`Could not sign out: ${error.message}`);
         }
-        return;
-      }
-      openSignInModal();
+      });
     });
-  });
-
-  document.getElementById('googleSignInButton').addEventListener('click', async () => {
-    const button = document.getElementById('googleSignInButton');
-    button.disabled = true;
-    try {
-      await firebaseReady;
-      if (!firebaseAuth || !firebaseAuthModule) {
-        throw new Error('Firebase could not be initialized. Check the Firebase setup and open this site through localhost or HTTPS.');
-      }
-      const provider = new firebaseAuthModule.GoogleAuthProvider();
-      await firebaseAuthModule.signInWithPopup(firebaseAuth, provider);
-      closeSignInModal();
-    } catch (error) {
-      setAuthMessage(error.message, true);
-    } finally {
-      button.disabled = false;
-    }
   });
 
   updateAuthLinks();
   firebaseReady = initializeFirebase().catch((error) => {
-    setAuthMessage(error.message, true);
-    setAdminMessage(error.message, true);
+    if (document.body && document.body.getAttribute('data-admin-page') === 'true') {
+      setAdminMessage(error.message, true);
+    }
   });
 }
 
 window.getSignedInUser = getSignedInUser;
-window.openSignInModal = openSignInModal;
+window.firebaseAuthReady = async () => {
+  await firebaseReady;
+  await firebaseAuthStateReady;
+  return getSignedInUser();
+};
 
 /* ---- SCROLL REVEAL ---- */
 const revealEls = document.querySelectorAll(
@@ -857,5 +765,4 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 window.getSignedInUser = getSignedInUser;
-window.openSignInModal = openSignInModal;
 window.persistBooking = persistBooking;
