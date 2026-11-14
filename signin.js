@@ -1,23 +1,13 @@
-import { getFirebaseServices, recordSignedInUser } from './firebase-client.js';
+import { adminEmail, getFirebaseServices, recordSignedInUser } from './firebase-client.js';
 
 const button = document.getElementById('googleSignInButton');
 const message = document.getElementById('authMessage');
-const params = new URLSearchParams(location.search);
-const redirectTarget = getRedirectTarget(params.get('returnTo'));
 let services;
 let redirecting = false;
 
-function getRedirectTarget(value) {
-  if (!value) return new URL('index.html', location.href).href;
-  try {
-    const target = new URL(value, location.href);
-    if (target.origin !== location.origin || target.pathname.endsWith('/signin.html')) {
-      return new URL('index.html', location.href).href;
-    }
-    return target.href;
-  } catch (error) {
-    return new URL('index.html', location.href).href;
-  }
+function getRedirectTarget(user) {
+  const page = user.email && user.email.toLowerCase() === adminEmail ? 'admin.html' : 'index.html';
+  return new URL(page, location.href).href;
 }
 
 function showMessage(text, isError) {
@@ -41,6 +31,38 @@ function getSignInErrorMessage(error) {
   return error.message || 'Google sign-in failed. Please try again.';
 }
 
+async function savePendingBooking(user) {
+  const rawBooking = sessionStorage.getItem('ars_pending_booking');
+  if (!rawBooking) return;
+
+  let booking;
+  try {
+    booking = JSON.parse(rawBooking);
+  } catch (error) {
+    sessionStorage.removeItem('ars_pending_booking');
+    throw new Error('Your saved booking details could not be read. Please submit the booking again.');
+  }
+  if (!booking || typeof booking !== 'object') {
+    sessionStorage.removeItem('ars_pending_booking');
+    throw new Error('Your saved booking details are invalid. Please submit the booking again.');
+  }
+
+  const { firestore, firestoreModule } = services;
+  await firestoreModule.addDoc(firestoreModule.collection(firestore, 'bookings'), {
+    uid: user.uid,
+    name: booking.name || user.displayName || '',
+    email: booking.email || user.email || '',
+    phone: booking.phone || '',
+    service: booking.service || '',
+    date: booking.date || '',
+    time: booking.time || '',
+    notes: booking.notes || '',
+    accountEmail: user.email || '',
+    createdAt: firestoreModule.serverTimestamp()
+  });
+  sessionStorage.removeItem('ars_pending_booking');
+}
+
 async function finishSignIn(user) {
   if (redirecting) return;
   redirecting = true;
@@ -51,7 +73,15 @@ async function finishSignIn(user) {
     showMessage(`Signed in successfully, but last-seen activity could not be saved: ${error.message}`, true);
     await new Promise((resolve) => setTimeout(resolve, 2200));
   }
-  location.replace(redirectTarget);
+  try {
+    await savePendingBooking(user);
+  } catch (error) {
+    showMessage(`Signed in, but your booking could not be saved: ${error.message}`, true);
+    redirecting = false;
+    button.disabled = false;
+    return;
+  }
+  location.replace(getRedirectTarget(user));
 }
 
 async function initializeSignIn() {
@@ -68,20 +98,30 @@ async function initializeSignIn() {
   }
 }
 
-async function handleGoogleSignIn() {
+function handleGoogleSignIn() {
   button.disabled = true;
   showMessage('Opening Google sign-in...', false);
-  try {
-    if (!services) services = await getFirebaseServices();
-    const provider = new services.authModule.GoogleAuthProvider();
-    const result = await services.authModule.signInWithPopup(services.auth, provider);
-    await finishSignIn(result.user);
-  } catch (error) {
-    button.disabled = false;
-    showMessage(getSignInErrorMessage(error), true);
-  }
+  getFirebaseServices()
+    .then((firebaseServices) => {
+      services = firebaseServices;
+      const provider = new services.authModule.GoogleAuthProvider();
+      return services.authModule.signInWithPopup(services.auth, provider);
+    })
+    .then(async (result) => {
+      const credential = services.authModule.GoogleAuthProvider.credentialFromResult(result);
+      const token = credential ? credential.accessToken : null;
+      const user = result.user;
+      if (!user) throw new Error('Google sign-in completed without returning a user.');
+      await finishSignIn(user);
+      return token;
+    })
+    .catch((error) => {
+      button.disabled = false;
+      showMessage(getSignInErrorMessage(error), true);
+    });
 }
 
 button.addEventListener('click', handleGoogleSignIn);
+window.handleGoogleSignIn = handleGoogleSignIn;
 
 initializeSignIn();

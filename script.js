@@ -573,12 +573,38 @@ function updateAuthLinks() {
   const rootPrefix = /\/pages\//i.test(window.location.pathname) ? '../' : '';
   const isAdminPage = document.body && document.body.getAttribute('data-admin-page') === 'true';
   document.querySelectorAll('[data-sign-in-link]').forEach((link) => {
-    link.textContent = user ? 'Sign Out' : 'Sign In';
-    link.title = user ? `Signed in as ${user.email}` : 'Sign in to book a session';
-    link.setAttribute('aria-label', user ? `Sign out ${user.email}` : 'Sign in');
-    link.href = user
-      ? '#sign-out'
-      : `${rootPrefix}signin.html${isAdminPage ? '?returnTo=admin.html' : ''}`;
+    link.replaceChildren();
+    link.classList.toggle('nav-user-link', Boolean(user));
+    link.title = user ? `Signed in as ${user.email}. Click to sign out.` : 'Sign in to book a session';
+    link.setAttribute('aria-label', user ? `Signed in as ${user.email}. Click to sign out.` : 'Sign in');
+    link.href = user ? '#sign-out' : `${rootPrefix}signin.html${isAdminPage ? '?returnTo=admin.html' : ''}`;
+
+    if (!user) {
+      link.textContent = 'Sign In';
+      return;
+    }
+
+    const avatar = document.createElement(user.photoURL ? 'img' : 'span');
+    avatar.className = 'nav-user-avatar';
+    if (user.photoURL) {
+      avatar.src = user.photoURL;
+      avatar.alt = '';
+      avatar.referrerPolicy = 'no-referrer';
+      avatar.addEventListener('error', () => {
+        const fallback = document.createElement('span');
+        fallback.className = 'nav-user-avatar nav-user-initial';
+        fallback.textContent = (user.displayName || user.email || '?').trim().charAt(0).toUpperCase();
+        avatar.replaceWith(fallback);
+      }, { once: true });
+    } else {
+      avatar.classList.add('nav-user-initial');
+      avatar.textContent = (user.displayName || user.email || '?').trim().charAt(0).toUpperCase();
+    }
+
+    const email = document.createElement('span');
+    email.className = 'nav-user-email';
+    email.textContent = user.email || user.displayName || 'Signed in';
+    link.append(avatar, email);
   });
 }
 
