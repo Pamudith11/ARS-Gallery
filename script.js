@@ -113,6 +113,7 @@ const siteData = {
   errors: {}
 };
 let stopSiteListeners = [];
+let presenceTimer = null;
 
 function isAdminPage() {
   return Boolean(document.body && document.body.getAttribute('data-admin-page') === 'true');
@@ -432,11 +433,11 @@ function renderAdminDashboard(options = {}) {
             <strong>${escapeHTML(booking.name || 'Guest')}</strong>
             <p>${escapeHTML(booking.email || 'No email')}</p>
             ${booking.phone ? `<small>Phone: ${escapeHTML(booking.phone)}</small>` : ''}
-            ${booking.accountEmail ? `<small>Account: ${escapeHTML(booking.accountEmail)}</small>` : ''}
+            ${booking.accountEmail ? `<small>Google account: ${escapeHTML(booking.accountEmail)}</small>` : ''}
           </div>
           <div>
             <span>${escapeHTML(booking.service || 'Session')}</span>
-            <small>Appointment: ${escapeHTML(booking.date || 'No date')} • ${escapeHTML(booking.time || 'No time')}</small>
+            <small>Session date: ${escapeHTML(formatAppointment(booking.date, booking.time))}</small>
             ${booking.createdAt ? `<small>Booked on: ${escapeHTML(formatBookingDate(booking.createdAt))}</small>` : ''}
             ${booking.notes ? `<p>${escapeHTML(booking.notes)}</p>` : ''}
             ${canManageBookings && booking.id ? `<button type="button" class="mini-delete" data-booking-id="${escapeHTML(booking.id)}">Delete</button>` : ''}
@@ -453,6 +454,41 @@ function renderAdminDashboard(options = {}) {
     }
   }
 
+  const bookedClientsList = document.getElementById('adminBookedClientsList');
+  if (bookedClientsList) {
+    const bookings = firebaseAdminBookings || [];
+    const users = firebaseAdminUsers || [];
+    const groups = new Map();
+    bookings.forEach((booking) => {
+      const key = booking.uid || booking.accountEmail || booking.email || booking.id;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(booking);
+    });
+    if (!groups.size) {
+      bookedClientsList.innerHTML = '<div class="empty-state">No clients have booked yet.</div>';
+    } else {
+      bookedClientsList.innerHTML = Array.from(groups.entries()).map(([key, list]) => {
+        const user = users.find((item) => item.uid === key);
+        const name = (user && user.displayName) || list[0].name || 'Client';
+        const email = (user && user.email) || list[0].accountEmail || list[0].email || '';
+        const sessions = list.slice().sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+        return `
+          <div class="admin-user-item">
+            ${user && user.photoURL ? `<img src="${escapeHTML(user.photoURL)}" alt="" referrerpolicy="no-referrer" />` : '<span class="admin-user-avatar" aria-hidden="true">C</span>'}
+            <div class="admin-user-details">
+              <strong>${escapeHTML(name)}</strong>
+              <p>${escapeHTML(email)}</p>
+              ${sessions.map((booking) => `<small>${escapeHTML(formatAppointment(booking.date, booking.time))} — ${escapeHTML(booking.service || 'Session')}${booking.createdAt ? ` (booked ${escapeHTML(formatBookingDate(booking.createdAt))})` : ''}</small>`).join('')}
+            </div>
+            <div class="admin-user-last-seen">
+              <span>${list.length} booking${list.length === 1 ? '' : 's'}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
   if (userList) {
     const users = firebaseAdminUsers || [];
     const bookings = firebaseAdminBookings || [];
@@ -463,12 +499,12 @@ function renderAdminDashboard(options = {}) {
         const lastSeen = user.lastSeenAt && typeof user.lastSeenAt.toDate === 'function'
           ? user.lastSeenAt.toDate()
           : (user.lastSeenAt ? new Date(user.lastSeenAt) : null);
-        const lastSeenText = lastSeen && !Number.isNaN(lastSeen.getTime())
-          ? lastSeen.toLocaleString()
-          : 'Not available';
+        const hasLastSeen = lastSeen && !Number.isNaN(lastSeen.getTime());
+        const lastSeenText = hasLastSeen ? lastSeen.toLocaleString() : 'Not available';
+        const isOnline = hasLastSeen && Date.now() - lastSeen.getTime() < 5 * 60 * 1000;
         const userBookings = bookings.filter((booking) => booking.uid === user.uid);
         const bookingSummary = userBookings.length
-          ? `Booked ${userBookings.length} session${userBookings.length === 1 ? '' : 's'}: ${userBookings.map((booking) => booking.date || 'Date pending').join(', ')}`
+          ? `Booked ${userBookings.length} session${userBookings.length === 1 ? '' : 's'}: ${userBookings.map((booking) => formatAppointment(booking.date, booking.time)).join(', ')}`
           : 'No bookings yet';
         return `
           <div class="admin-user-item">
@@ -479,7 +515,7 @@ function renderAdminDashboard(options = {}) {
               <small>${escapeHTML(bookingSummary)}</small>
             </div>
             <div class="admin-user-last-seen">
-              <span>Last seen</span>
+              <span${isOnline ? ' style="color:#6ee7a0"' : ''}>${isOnline ? '● Online now' : 'Last seen'}</span>
               <small>${escapeHTML(lastSeenText)}</small>
             </div>
           </div>
@@ -487,6 +523,17 @@ function renderAdminDashboard(options = {}) {
       }).join('');
     }
   }
+}
+
+function formatAppointment(date, time) {
+  let dateText = date || 'No date';
+  if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    const parsed = new Date(`${date}T00:00:00`);
+    if (!Number.isNaN(parsed.getTime())) {
+      dateText = parsed.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+    }
+  }
+  return time ? `${dateText} • ${time}` : dateText;
 }
 
 function formatBookingDate(value) {
@@ -954,6 +1001,7 @@ function listenForAdminData() {
 
 async function handleFirebaseAuthState(user) {
   firebaseCurrentUser = user;
+  if (presenceTimer) { clearInterval(presenceTimer); presenceTimer = null; }
   updateAuthLinks();
   const isAdminPage = document.body && document.body.getAttribute('data-admin-page') === 'true';
   if (!user) {
@@ -971,6 +1019,12 @@ async function handleFirebaseAuthState(user) {
       setAdminPanelError('adminUserList', `Could not update sign-in activity: ${error.message}`);
     }
   }
+
+  // Keep "last seen" fresh while the person has the site open, so the admin can see who is online.
+  presenceTimer = setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
+    firebaseClient.recordSignedInUser(user, { firestore, firestoreModule }).catch(() => {});
+  }, 120000);
 
   const isAdmin = user.uid === firebaseClient.adminUid;
   if (isAdminPage) {

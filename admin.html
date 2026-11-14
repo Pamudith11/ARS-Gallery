@@ -127,6 +127,11 @@
         </div>
 
         <div class="admin-panel full-width">
+          <h3>Clients Who Booked</h3>
+          <div class="admin-list" id="adminBookedClientsList"></div>
+        </div>
+
+        <div class="admin-panel full-width">
           <h3>Signed-in Users</h3>
           <div class="admin-list" id="adminUserList"></div>
         </div>
@@ -341,6 +346,8 @@
     }
 
     renderAdminDashboard();
+    // Refresh the "Online now" status every minute.
+    setInterval(() => renderAdminDashboard({ skipPackages: true }), 60000);
   </script>
 </body>
 </html>
