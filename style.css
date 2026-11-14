@@ -870,18 +870,16 @@ ul { list-style: none; }
   border-radius: 50%;
   object-fit: cover;
 }
-.nav-user-initial {
+.nav-user-fallback {
   display: inline-grid;
   place-items: center;
-  background: var(--dark3);
-  color: var(--gold);
-  font-size: 0.85rem;
-  font-weight: 700;
 }
-.nav-user-email {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.nav-user-fallback circle:first-child {
+  fill: var(--dark3);
+}
+.nav-user-fallback circle:not(:first-child),
+.nav-user-fallback path {
+  fill: var(--gold);
 }
 .mobile-nav.open { max-height: 600px; }
 .auth-modal {

@@ -1,5 +1,5 @@
 import {
-  adminEmail,
+  adminUid,
   getFirebaseAuthErrorMessage,
   getFirebaseServices,
   recordSignedInUser
@@ -15,7 +15,7 @@ let services;
 let redirecting = false;
 
 function getRedirectTarget(user) {
-  const page = user.email && user.email.toLowerCase() === adminEmail ? 'admin.html' : 'index.html';
+  const page = user.uid === adminUid ? 'admin.html' : 'index.html';
   return new URL(page, location.href).href;
 }
 
@@ -75,7 +75,7 @@ async function savePendingBooking(user) {
 
 async function finishSignIn(user) {
   if (redirecting) return;
-  if (user.email && user.email.toLowerCase() === adminEmail && !user.emailVerified) {
+  if (user.uid === adminUid && !user.emailVerified) {
     showMessage('Verify the admin email address in Firebase Authentication before opening the dashboard.', true);
     document.querySelectorAll('.signin-card button').forEach((control) => { control.disabled = false; });
     return;
@@ -154,10 +154,6 @@ adminSignInForm.addEventListener('submit', (event) => {
   event.preventDefault();
   const email = document.getElementById('adminEmail').value.trim();
   const password = document.getElementById('adminPassword').value;
-  if (email.toLowerCase() !== adminEmail) {
-    showMessage(`Use the authorized admin email: ${adminEmail}`, true);
-    return;
-  }
   runSignIn(async () => {
     services = await getFirebaseServices();
     await services.authModule.signInWithEmailAndPassword(services.auth, email, password);

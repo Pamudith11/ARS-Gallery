@@ -653,11 +653,14 @@ function updateAuthLinks() {
   const user = getSignedInUser();
   const rootPrefix = /\/pages\//i.test(window.location.pathname) ? '../' : '';
   const isAdminPage = document.body && document.body.getAttribute('data-admin-page') === 'true';
+  const isAdmin = user && firebaseClient && user.uid === firebaseClient.adminUid;
   document.querySelectorAll('[data-sign-in-link]').forEach((link) => {
     link.replaceChildren();
     link.classList.toggle('nav-user-link', Boolean(user));
-    link.title = user ? `Signed in as ${user.email}. Click to sign out.` : 'Sign in to book a session';
-    link.setAttribute('aria-label', user ? `Signed in as ${user.email}. Click to sign out.` : 'Sign in');
+    link.title = user
+      ? `${isAdmin ? 'Admin account' : 'Signed in'}. Click to sign out.`
+      : 'Sign in to book a session';
+    link.setAttribute('aria-label', user ? 'Profile. Click to sign out.' : 'Sign in');
     link.href = user ? '#sign-out' : `${rootPrefix}signin.html${isAdminPage ? '?returnTo=admin.html' : ''}`;
 
     if (!user) {
@@ -665,28 +668,41 @@ function updateAuthLinks() {
       return;
     }
 
-    const avatar = document.createElement(user.photoURL ? 'img' : 'span');
-    avatar.className = 'nav-user-avatar';
     if (user.photoURL) {
+      const avatar = document.createElement('img');
+      avatar.className = 'nav-user-avatar';
       avatar.src = user.photoURL;
       avatar.alt = '';
       avatar.referrerPolicy = 'no-referrer';
       avatar.addEventListener('error', () => {
-        const fallback = document.createElement('span');
-        fallback.className = 'nav-user-avatar nav-user-initial';
-        fallback.textContent = (user.displayName || user.email || '?').trim().charAt(0).toUpperCase();
+        const fallback = createProfileFallback(user);
         avatar.replaceWith(fallback);
       }, { once: true });
+      link.append(avatar);
     } else {
-      avatar.classList.add('nav-user-initial');
-      avatar.textContent = (user.displayName || user.email || '?').trim().charAt(0).toUpperCase();
+      link.append(createProfileFallback(user));
     }
-
-    const email = document.createElement('span');
-    email.className = 'nav-user-email';
-    email.textContent = user.email || user.displayName || 'Signed in';
-    link.append(avatar, email);
   });
+}
+
+function createProfileFallback(user) {
+  const namespace = 'http://www.w3.org/2000/svg';
+  const fallback = document.createElementNS(namespace, 'svg');
+  fallback.setAttribute('class', 'nav-user-avatar nav-user-fallback');
+  fallback.setAttribute('viewBox', '0 0 32 32');
+  fallback.setAttribute('aria-hidden', 'true');
+  const background = document.createElementNS(namespace, 'circle');
+  background.setAttribute('cx', '16');
+  background.setAttribute('cy', '16');
+  background.setAttribute('r', '15');
+  const head = document.createElementNS(namespace, 'circle');
+  head.setAttribute('cx', '16');
+  head.setAttribute('cy', '12');
+  head.setAttribute('r', '5');
+  const shoulders = document.createElementNS(namespace, 'path');
+  shoulders.setAttribute('d', 'M6 28c.8-5.3 4.5-8 10-8s9.2 2.7 10 8');
+  fallback.append(background, head, shoulders);
+  return fallback;
 }
 
 function closeMobileMenu() {
@@ -716,6 +732,14 @@ function setAdminMessage(message, isError, showSignIn = false) {
   if (grid) grid.hidden = Boolean(message);
 }
 
+function setAdminPanelError(listId, message) {
+  const list = document.getElementById(listId);
+  if (list) {
+    list.textContent = message;
+    list.classList.add('auth-error');
+  }
+}
+
 function stopAdminDataListeners() {
   stopAdminListeners.forEach((unsubscribe) => unsubscribe());
   stopAdminListeners = [];
@@ -736,15 +760,17 @@ function listenForAdminData() {
 
   stopAdminListeners.push(firestoreModule.onSnapshot(bookingsQuery, (snapshot) => {
     firebaseAdminBookings = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+    document.getElementById('adminBookingList')?.classList.remove('auth-error');
     renderAdminDashboard();
   }, (error) => {
-    setAdminMessage(`Could not load bookings: ${error.message}`, true);
+    setAdminPanelError('adminBookingList', `Could not load bookings: ${error.message}`);
   }));
   stopAdminListeners.push(firestoreModule.onSnapshot(usersQuery, (snapshot) => {
     firebaseAdminUsers = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+    document.getElementById('adminUserList')?.classList.remove('auth-error');
     renderAdminDashboard();
   }, (error) => {
-    setAdminMessage(`Could not load sign-in activity: ${error.message}`, true);
+    setAdminPanelError('adminUserList', `Could not load sign-in activity: ${error.message}`);
   }));
 }
 
@@ -763,19 +789,16 @@ async function handleFirebaseAuthState(user) {
   try {
     await firebaseClient.recordSignedInUser(user, { firestore, firestoreModule });
   } catch (error) {
-    if (isAdminPage) setAdminMessage(`Could not update sign-in activity: ${error.message}`, true);
+    if (isAdminPage) {
+      setAdminPanelError('adminUserList', `Could not update sign-in activity: ${error.message}`);
+    }
   }
 
-  const isAdmin = user.email
-    && user.email.toLowerCase() === firebaseClient.adminEmail
-    && user.emailVerified;
+  const isAdmin = user.uid === firebaseClient.adminUid;
   if (isAdminPage) {
     if (!isAdmin) {
       stopAdminDataListeners();
-      const message = user.email && user.email.toLowerCase() === firebaseClient.adminEmail
-        ? 'Verify the admin email address in Firebase Authentication before opening the dashboard.'
-        : `Access denied. Sign in with ${firebaseClient.adminEmail} to use the admin panel.`;
-      setAdminMessage(message, true);
+      setAdminMessage('Access denied. Sign in with the authorized admin account to use the admin panel.', true);
       return;
     }
     setAdminMessage('', false);

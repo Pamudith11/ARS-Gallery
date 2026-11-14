@@ -9,7 +9,7 @@ const firebaseConfig = {
 };
 
 const firebaseVersion = '11.10.0';
-export const adminEmail = 'pamudith11@gmail.com';
+export const adminUid = 'jVqLx3fGXrSWP8DtP0WP2j70urv1';
 
 let firebaseServices;
 
