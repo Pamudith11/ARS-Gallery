@@ -617,12 +617,19 @@ function closeMobileMenu() {
   });
 }
 
-function setAdminMessage(message, isError) {
+function setAdminMessage(message, isError, showSignIn = false) {
   const status = document.getElementById('adminAccessMessage');
   const grid = document.getElementById('adminDashboard');
   if (status) {
-    status.textContent = message;
+    status.replaceChildren(document.createTextNode(message));
     status.classList.toggle('auth-error', Boolean(isError));
+    if (showSignIn) {
+      const signInLink = document.createElement('a');
+      signInLink.className = 'admin-signin-link';
+      signInLink.href = 'signin.html?returnTo=admin.html';
+      signInLink.textContent = 'Sign in with Google';
+      status.append(document.createElement('br'), signInLink);
+    }
     status.hidden = !message;
   }
   if (grid) grid.hidden = Boolean(message);
@@ -668,7 +675,7 @@ async function handleFirebaseAuthState(user) {
     stopAdminDataListeners();
     setAdminMessage(isAdminPage
       ? 'Sign in with the admin Google account to open this dashboard.'
-      : '', false);
+      : '', false, isAdminPage);
     return;
   }
 
