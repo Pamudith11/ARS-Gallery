@@ -43,7 +43,6 @@
         <li><a href="testimonials.html" class="mob-link">Packages</a></li>
         <li><a href="booking.html" class="mob-link">Booking</a></li>
         <li><a href="contact.html" class="mob-link">Contact</a></li>
-        <li><a href="../admin.html" class="mob-link">Admin</a></li>
       </ul>
       <a href="booking.html" class="btn-book mob-link">Book Now</a>
     </div>
@@ -299,6 +298,41 @@
       }
     }
 
+    function restorePendingBooking() {
+      let pending;
+      try {
+        pending = JSON.parse(sessionStorage.getItem('ars_pending_booking') || 'null');
+      } catch (error) {
+        sessionStorage.removeItem('ars_pending_booking');
+        bookingError.textContent = 'Your saved booking details could not be restored. Please fill them in again.';
+        return;
+      }
+      if (!pending) return;
+
+      document.getElementById('bName').value = pending.name || '';
+      document.getElementById('bEmail').value = pending.email || '';
+      document.getElementById('bPhone').value = pending.phone || '';
+      document.getElementById('bNotes').value = pending.notes || '';
+      if (Array.from(serviceSelect.options).some((option) => option.value === pending.service)) {
+        serviceSelect.value = pending.service;
+        serviceSelect.dispatchEvent(new Event('change'));
+      }
+
+      const slot = Array.from(document.querySelectorAll('.slot-btn')).find((button) => button.textContent === pending.time);
+      if (slot) slot.click();
+
+      const dateParts = String(pending.date || '').split('-').map(Number);
+      if (dateParts.length === 3 && dateParts.every(Number.isFinite)) {
+        selectedCalendarDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+        currentMonth = new Date(dateParts[0], dateParts[1] - 1, 1);
+        renderCalendar();
+        const selectedButton = Array.from(calendarGrid.querySelectorAll('.day')).find((button) =>
+          button.textContent === String(dateParts[2]) && !button.disabled
+        );
+        if (selectedButton) selectedButton.click();
+      }
+    }
+
     prevMonthBtn.addEventListener('click', () => {
       currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
       renderCalendar();
@@ -334,37 +368,43 @@
         return;
       }
 
-      const currentUser = window.getSignedInUser();
+      const pendingBooking = {
+        name: document.getElementById('bName').value.trim(),
+        email: document.getElementById('bEmail').value.trim(),
+        phone: document.getElementById('bPhone').value.trim(),
+        service: serviceSelect.value,
+        date: [
+          selectedCalendarDate.getFullYear(),
+          String(selectedCalendarDate.getMonth() + 1).padStart(2, '0'),
+          String(selectedCalendarDate.getDate()).padStart(2, '0')
+        ].join('-'),
+        time: selectedSlotText.textContent,
+        notes: document.getElementById('bNotes').value.trim()
+      };
+
+      let currentUser;
+      try {
+        currentUser = await window.firebaseAuthReady();
+      } catch (error) {
+        bookingError.textContent = `Sign-in service is unavailable: ${error.message}`;
+        return;
+      }
       if (!currentUser) {
-        window.openSignInModal(() => {
-          if (!document.getElementById('bName').value) {
-            document.getElementById('bName').value = window.getSignedInUser().name || '';
-          }
-          if (!document.getElementById('bEmail').value) {
-            document.getElementById('bEmail').value = window.getSignedInUser().email;
-          }
-          bookingForm.requestSubmit();
-        });
+        sessionStorage.setItem('ars_pending_booking', JSON.stringify(pendingBooking));
+        const signInPage = new URL('../signin.html', window.location.href);
+        signInPage.searchParams.set('returnTo', 'pages/booking.html');
+        window.location.assign(signInPage.href);
         return;
       }
 
       bookingError.textContent = '';
-      const formattedDate = [
-        selectedCalendarDate.getFullYear(),
-        String(selectedCalendarDate.getMonth() + 1).padStart(2, '0'),
-        String(selectedCalendarDate.getDate()).padStart(2, '0')
-      ].join('-');
       const submitButton = bookingForm.querySelector('button[type="submit"]');
       submitButton.disabled = true;
       try {
         await window.persistBooking({
-          name: document.getElementById('bName').value.trim(),
-          email: document.getElementById('bEmail').value.trim(),
-          phone: document.getElementById('bPhone').value.trim(),
-          service: serviceSelect.value,
-          date: formattedDate,
-          time: selectedSlotText.textContent,
-          notes: document.getElementById('bNotes').value.trim()
+          ...pendingBooking,
+          name: pendingBooking.name || currentUser.displayName || '',
+          email: pendingBooking.email || currentUser.email || ''
         });
       } catch (error) {
         bookingError.textContent = `Booking could not be saved: ${error.message}`;
@@ -372,6 +412,7 @@
         return;
       }
       submitButton.disabled = false;
+      sessionStorage.removeItem('ars_pending_booking');
       bookingSuccess.style.display = 'block';
       bookingForm.reset();
       serviceSelect.dispatchEvent(new Event('change'));
@@ -389,6 +430,7 @@
     });
 
     renderCalendar();
+    restorePendingBooking();
   </script>
 </body>
 </html>
