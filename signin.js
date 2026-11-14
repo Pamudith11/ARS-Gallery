@@ -101,7 +101,7 @@ async function finishSignIn(user, method) {
     return;
   }
   if (method === 'password' && !isAdminUser) {
-    await rejectSignIn('Email and password sign-in is for the admin only. Clients, please continue with Google.');
+    await rejectSignIn(`Email and password sign-in is for the admin only. Clients, please continue with Google. (This account's UID is ${user.uid}. If this is the admin account, this exact UID must be set as adminUid in firebase-client.js and in firestore.rules.)`);
     return;
   }
   if (!method && !isAdminUser && !hasGoogle) {
