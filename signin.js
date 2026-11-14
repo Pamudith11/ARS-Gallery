@@ -25,18 +25,33 @@ function showMessage(text, isError) {
   message.classList.toggle('auth-error', Boolean(isError));
 }
 
+function getSignInErrorMessage(error) {
+  if (error.code === 'auth/unauthorized-domain') {
+    return `Add "${location.hostname}" to Firebase Console > Authentication > Settings > Authorized domains, then try again.`;
+  }
+  if (error.code === 'auth/operation-not-allowed') {
+    return 'Enable Google as a sign-in provider in Firebase Console > Authentication > Sign-in method.';
+  }
+  if (error.code === 'auth/popup-blocked') {
+    return 'Your browser blocked the Google sign-in popup. Allow popups for this site and try again.';
+  }
+  if (error.code === 'auth/popup-closed-by-user') {
+    return 'The Google sign-in window was closed before sign-in completed.';
+  }
+  return error.message || 'Google sign-in failed. Please try again.';
+}
+
 async function finishSignIn(user) {
   if (redirecting) return;
   redirecting = true;
   button.disabled = true;
   try {
     await recordSignedInUser(user, services);
-    location.replace(redirectTarget);
   } catch (error) {
-    redirecting = false;
-    button.disabled = false;
-    showMessage(`Signed in, but login activity could not be saved: ${error.message}`, true);
+    showMessage(`Signed in successfully, but last-seen activity could not be saved: ${error.message}`, true);
+    await new Promise((resolve) => setTimeout(resolve, 2200));
   }
+  location.replace(redirectTarget);
 }
 
 async function initializeSignIn() {
@@ -45,15 +60,15 @@ async function initializeSignIn() {
     services.authModule.onAuthStateChanged(services.auth, (user) => {
       if (user) finishSignIn(user);
     }, (error) => {
-      showMessage(`Firebase sign-in error: ${error.message}`, true);
+      showMessage(`Firebase sign-in error: ${getSignInErrorMessage(error)}`, true);
     });
   } catch (error) {
-    showMessage(error.message, true);
+    showMessage(getSignInErrorMessage(error), true);
     button.disabled = true;
   }
 }
 
-button.addEventListener('click', async () => {
+async function handleGoogleSignIn() {
   button.disabled = true;
   showMessage('Opening Google sign-in...', false);
   try {
@@ -63,8 +78,10 @@ button.addEventListener('click', async () => {
     await finishSignIn(result.user);
   } catch (error) {
     button.disabled = false;
-    showMessage(error.message, true);
+    showMessage(getSignInErrorMessage(error), true);
   }
-});
+}
+
+button.addEventListener('click', handleGoogleSignIn);
 
 initializeSignIn();
