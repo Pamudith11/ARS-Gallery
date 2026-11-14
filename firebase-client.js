@@ -9,7 +9,7 @@ const firebaseConfig = {
 };
 
 const firebaseVersion = '11.10.0';
-export const adminUid = 'jVqLx3fGXrSWP8DtP0WP2j70urv1';
+export const adminUid = 'OMGd04Xx0AXMw4m45ATzLR48BOE2';
 
 let firebaseServices;
 
