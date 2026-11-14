@@ -995,6 +995,16 @@ ul { list-style: none; }
   transition: color 0.2s ease;
 }
 .auth-admin-link:hover { color: var(--gold); }
+.admin-signin-toggle {
+  width: 100%;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.admin-signin-section[hidden] { display: none; }
 .auth-error {
   color: #ff9a9a;
   font-size: 0.85rem;

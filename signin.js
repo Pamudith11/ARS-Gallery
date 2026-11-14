@@ -9,6 +9,8 @@ const button = document.getElementById('googleSignInButton');
 const message = document.getElementById('authMessage');
 const userSignInForm = document.getElementById('userSignInForm');
 const adminSignInForm = document.getElementById('adminSignInForm');
+const adminSignInSection = document.getElementById('adminSignInSection');
+const adminSignInToggle = document.getElementById('toggleAdminSignIn');
 let services;
 let redirecting = false;
 
@@ -160,6 +162,14 @@ adminSignInForm.addEventListener('submit', (event) => {
     services = await getFirebaseServices();
     await services.authModule.signInWithEmailAndPassword(services.auth, email, password);
   });
+});
+
+adminSignInToggle.addEventListener('click', () => {
+  const isExpanded = adminSignInToggle.getAttribute('aria-expanded') === 'true';
+  adminSignInToggle.setAttribute('aria-expanded', String(!isExpanded));
+  adminSignInSection.hidden = isExpanded;
+  adminSignInToggle.textContent = isExpanded ? 'Admin Sign In' : 'Hide Admin Sign In';
+  if (!isExpanded) document.getElementById('adminEmail').focus();
 });
 
 button.addEventListener('click', handleGoogleSignIn);

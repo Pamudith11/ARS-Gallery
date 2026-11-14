@@ -38,7 +38,15 @@
         Continue with Google
       </button>
 
-      <section class="admin-signin-section" aria-labelledby="adminSignInTitle">
+      <button
+        id="toggleAdminSignIn"
+        class="auth-admin-link admin-signin-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="adminSignInSection"
+      >Admin Sign In</button>
+
+      <section id="adminSignInSection" class="admin-signin-section" aria-labelledby="adminSignInTitle" hidden>
         <h2 id="adminSignInTitle">Admin Sign In</h2>
         <p class="auth-demo-note">Use the verified admin account registered in Firebase Authentication.</p>
         <form id="adminSignInForm" class="signin-form">
@@ -50,7 +58,7 @@
             <span>Password</span>
             <input id="adminPassword" name="password" type="password" autocomplete="current-password" required />
           </label>
-          <button type="submit" class="btn-primary signin-submit">Admin Sign In</button>
+          <button type="submit" class="btn-primary signin-submit">Sign In to Admin Panel</button>
         </form>
       </section>
 
