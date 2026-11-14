@@ -8,7 +8,6 @@ service cloud.firestore {
     function isAdmin() {
       return signedIn()
         && request.auth.uid == 'jVqLx3fGXrSWP8DtP0WP2j70urv1'
-        && request.auth.token.email_verified == true
         && request.auth.token.firebase.sign_in_provider == 'password';
     }
 

@@ -878,36 +878,121 @@ function updateAuthLinks() {
   const user = getSignedInUser();
   const rootPrefix = /\/pages\//i.test(window.location.pathname) ? '../' : '';
   const isAdminPage = document.body && document.body.getAttribute('data-admin-page') === 'true';
-  const isAdmin = user && firebaseClient && user.uid === firebaseClient.adminUid;
+  const isAdmin = Boolean(user && firebaseClient && user.uid === firebaseClient.adminUid);
+
+  // Signed out: show the plain "Sign In" link. Signed in: hide it (the profile icon replaces it).
   document.querySelectorAll('[data-sign-in-link]').forEach((link) => {
-    link.replaceChildren();
-    link.classList.toggle('nav-user-link', Boolean(user));
-    link.title = user
-      ? `${isAdmin ? 'Admin account' : 'Signed in'}. Click to sign out.`
-      : 'Sign in to book a session';
-    link.setAttribute('aria-label', user ? 'Profile. Click to sign out.' : 'Sign in');
-    link.href = user ? '#sign-out' : `${rootPrefix}signin.html${isAdminPage ? '?returnTo=admin.html' : ''}`;
-
-    if (!user) {
-      link.textContent = 'Sign In';
-      return;
-    }
-
-    if (user.photoURL) {
-      const avatar = document.createElement('img');
-      avatar.className = 'nav-user-avatar';
-      avatar.src = user.photoURL;
-      avatar.alt = '';
-      avatar.referrerPolicy = 'no-referrer';
-      avatar.addEventListener('error', () => {
-        const fallback = createProfileFallback(user);
-        avatar.replaceWith(fallback);
-      }, { once: true });
-      link.append(avatar);
-    } else {
-      link.append(createProfileFallback(user));
-    }
+    const item = link.closest('li');
+    if (item) item.hidden = Boolean(user);
+    link.textContent = 'Sign In';
+    link.title = 'Sign in to book a session';
+    link.setAttribute('aria-label', 'Sign in');
+    link.href = `${rootPrefix}signin.html${isAdminPage ? '?returnTo=admin.html' : ''}`;
   });
+
+  renderProfileMenu(user, isAdmin, rootPrefix);
+}
+
+function closeProfileMenu() {
+  const profile = document.getElementById('navProfile');
+  if (!profile) return;
+  const menu = profile.querySelector('.nav-profile-menu');
+  const button = profile.querySelector('.nav-profile-btn');
+  if (menu) menu.hidden = true;
+  if (button) button.setAttribute('aria-expanded', 'false');
+}
+
+let profileMenuEventsBound = false;
+
+function renderProfileMenu(user, isAdmin, rootPrefix) {
+  let profile = document.getElementById('navProfile');
+  if (!user) {
+    if (profile) profile.remove();
+    return;
+  }
+  const inner = document.querySelector('.nav-inner');
+  if (!inner) return;
+
+  if (!profile) {
+    profile = document.createElement('div');
+    profile.id = 'navProfile';
+    profile.className = 'nav-profile';
+    const burgerEl = document.getElementById('burger');
+    if (burgerEl && burgerEl.parentNode === inner) inner.insertBefore(profile, burgerEl);
+    else inner.appendChild(profile);
+  }
+  profile.replaceChildren();
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'nav-profile-btn';
+  button.setAttribute('aria-haspopup', 'true');
+  button.setAttribute('aria-expanded', 'false');
+  button.setAttribute('aria-label', 'Account menu');
+  button.title = user.email || 'Account';
+
+  if (user.photoURL) {
+    const avatar = document.createElement('img');
+    avatar.className = 'nav-user-avatar';
+    avatar.src = user.photoURL;
+    avatar.alt = '';
+    avatar.referrerPolicy = 'no-referrer';
+    avatar.addEventListener('error', () => avatar.replaceWith(createProfileFallback(user)), { once: true });
+    button.append(avatar);
+  } else {
+    button.append(createProfileFallback(user));
+  }
+
+  const menu = document.createElement('div');
+  menu.className = 'nav-profile-menu';
+  menu.hidden = true;
+
+  const info = document.createElement('div');
+  info.className = 'nav-profile-info';
+  const nameEl = document.createElement('strong');
+  nameEl.textContent = user.displayName || (isAdmin ? 'Admin' : 'Signed in');
+  const emailEl = document.createElement('small');
+  emailEl.textContent = user.email || '';
+  info.append(nameEl, emailEl);
+  menu.append(info);
+
+  if (isAdmin) {
+    const adminLink = document.createElement('a');
+    adminLink.href = `${rootPrefix}admin.html`;
+    adminLink.textContent = 'Admin panel';
+    menu.append(adminLink);
+  }
+
+  const signOutButton = document.createElement('button');
+  signOutButton.type = 'button';
+  signOutButton.textContent = 'Sign out';
+  signOutButton.addEventListener('click', () => {
+    closeProfileMenu();
+    firebaseAuthModule.signOut(firebaseAuth).catch((error) => {
+      window.alert(`Could not sign out: ${error.message}`);
+    });
+  });
+  menu.append(signOutButton);
+
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const willOpen = menu.hidden;
+    menu.hidden = !willOpen;
+    button.setAttribute('aria-expanded', String(willOpen));
+  });
+
+  profile.append(button, menu);
+
+  if (!profileMenuEventsBound) {
+    profileMenuEventsBound = true;
+    document.addEventListener('click', (event) => {
+      const current = document.getElementById('navProfile');
+      if (current && !current.contains(event.target)) closeProfileMenu();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeProfileMenu();
+    });
+  }
 }
 
 function createProfileFallback(user) {

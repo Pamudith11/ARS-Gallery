@@ -109,11 +109,6 @@ async function finishSignIn(user, method) {
     return;
   }
 
-  if (isAdminUser && !user.emailVerified) {
-    showMessage('Verify the admin email address in Firebase Authentication before opening the dashboard.', true);
-    enableControls();
-    return;
-  }
   redirecting = true;
   button.disabled = true;
   showMessage('', false);
