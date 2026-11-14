@@ -27,7 +27,6 @@
         <li><a href="pages/gallery.html">Gallery</a></li>
         <li><a href="pages/testimonials.html">Packages</a></li>
         <li><a href="pages/booking.html">Booking</a></li>
-        <li><a href="admin.html" class="active">Admin</a></li>
       </ul>
       <a href="pages/booking.html" class="btn-book">Book Now</a>
       <button class="burger" id="burger" aria-label="Menu">
@@ -42,7 +41,6 @@
         <li><a href="pages/gallery.html" class="mob-link">Gallery</a></li>
         <li><a href="pages/testimonials.html" class="mob-link">Testimonials</a></li>
         <li><a href="pages/booking.html" class="mob-link">Booking</a></li>
-        <li><a href="admin.html" class="mob-link">Admin</a></li>
       </ul>
       <a href="pages/booking.html" class="btn-book mob-link">Book Now</a>
     </div>
@@ -57,7 +55,10 @@
     </section>
 
     <section class="page-section contact">
-      <div class="container admin-grid">
+      <div class="container">
+        <div id="adminAccessMessage" class="admin-access-message" role="status">Checking Firebase sign-in...</div>
+      </div>
+      <div class="container admin-grid" id="adminDashboard" hidden>
         <div class="admin-panel">
           <h3>Add Category</h3>
           <form id="categoryForm" class="admin-form">
@@ -96,6 +97,11 @@
         <div class="admin-panel full-width">
           <h3>Bookings</h3>
           <div class="admin-list" id="adminBookingList"></div>
+        </div>
+
+        <div class="admin-panel full-width">
+          <h3>Google Sign-ins</h3>
+          <div class="admin-list" id="adminUserList"></div>
         </div>
       </div>
     </section>

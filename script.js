@@ -91,6 +91,43 @@ const STORAGE_KEYS = {
   bookings: 'ars_gallery_bookings'
 };
 
+const FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyA9v_MxMcfPwCjV0uieu6816Ptt_0_9C6k',
+  authDomain: 'ars-gallery-9ea0e.firebaseapp.com',
+  projectId: 'ars-gallery-9ea0e',
+  storageBucket: 'ars-gallery-9ea0e.firebasestorage.app',
+  messagingSenderId: '939333410954',
+  appId: '1:939333410954:web:451314291ba35822d58d73',
+  measurementId: 'G-ZTE8Z9Z3EY'
+};
+const FIREBASE_VERSION = '11.10.0';
+const ADMIN_EMAIL = 'pamudith11@gmail.com';
+let firebaseApp;
+let firebaseAuth;
+let firestore;
+let firebaseAuthModule;
+let firestoreModule;
+let firebaseCurrentUser = null;
+let pendingSignInCallback = null;
+let firebaseReady;
+let stopAdminListeners = [];
+let firebaseAdminBookings = null;
+let firebaseAdminUsers = null;
+
+function escapeHTML(value) {
+  return String(value || '').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[character]);
+}
+
+function getSignedInUser() {
+  return firebaseCurrentUser;
+}
+
 function slugify(value) {
   return (value || '')
     .toLowerCase()
@@ -161,6 +198,45 @@ function saveBookings(bookings) {
   localStorage.setItem(STORAGE_KEYS.bookings, JSON.stringify(bookings));
 }
 
+function getDefaultPackages() {
+  return [
+    {
+      id: 'package-wedding',
+      title: 'Wedding Story',
+      price: 'LKR 85,000',
+      features: ['8 hours coverage', '2 photographers', 'Online gallery', 'Printed album']
+    },
+    {
+      id: 'package-portrait',
+      title: 'Portrait Signature',
+      price: 'LKR 35,000',
+      features: ['1 outfit change', 'Studio or outdoor', '16 edited portraits', 'Fast delivery'],
+      featured: true
+    },
+    {
+      id: 'package-event',
+      title: 'Event Moments',
+      price: 'LKR 55,000',
+      features: ['4 hours coverage', 'Candid storytelling', 'High-resolution gallery', 'Sneak peek set']
+    }
+  ];
+}
+
+function getPackages() {
+  try {
+    const raw = localStorage.getItem(PACKAGE_STORAGE_KEY);
+    if (!raw) return getDefaultPackages();
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length ? parsed : getDefaultPackages();
+  } catch (error) {
+    return getDefaultPackages();
+  }
+}
+
+function savePackages(packages) {
+  localStorage.setItem(PACKAGE_STORAGE_KEY, JSON.stringify(packages));
+}
+
 function renderGalleryPage() {
   const filters = document.querySelector('.gal-filters');
   const grid = document.getElementById('gal-grid');
@@ -217,9 +293,10 @@ function renderAdminDashboard() {
   const categoryList = document.getElementById('adminCategoryList');
   const albumList = document.getElementById('adminAlbumList');
   const bookingList = document.getElementById('adminBookingList');
+  const userList = document.getElementById('adminUserList');
   const categorySelect = document.getElementById('albumCategory');
 
-  if (!categoryList && !albumList && !bookingList) return;
+  if (!categoryList && !albumList && !bookingList && !userList) return;
 
   const state = getGalleryState();
 
@@ -280,24 +357,55 @@ function renderAdminDashboard() {
   }
 
   if (bookingList) {
-    const bookings = getBookings();
+    const bookings = firebaseAdminBookings === null ? getBookings() : firebaseAdminBookings;
     if (!bookings.length) {
       bookingList.innerHTML = '<div class="empty-state">No bookings yet.</div>';
-      return;
+    } else {
+      bookingList.innerHTML = bookings.map((booking) => `
+        <div class="admin-booking-item">
+          <div>
+            <strong>${escapeHTML(booking.name || 'Guest')}</strong>
+            <p>${escapeHTML(booking.email || 'No email')}</p>
+            ${booking.phone ? `<small>Phone: ${escapeHTML(booking.phone)}</small>` : ''}
+            ${booking.accountEmail ? `<small>Account: ${escapeHTML(booking.accountEmail)}</small>` : ''}
+          </div>
+          <div>
+            <span>${escapeHTML(booking.service || 'Session')}</span>
+            <small>${escapeHTML(booking.date || 'No date')} • ${escapeHTML(booking.time || 'No time')}</small>
+            ${booking.notes ? `<p>${escapeHTML(booking.notes)}</p>` : ''}
+          </div>
+        </div>
+      `).join('');
     }
+  }
 
-    bookingList.innerHTML = bookings.map((booking) => `
-      <div class="admin-booking-item">
-        <div>
-          <strong>${booking.name || 'Guest'}</strong>
-          <p>${booking.email || 'No email'}</p>
-        </div>
-        <div>
-          <span>${booking.service || 'Session'}</span>
-          <small>${booking.date || 'No date'} • ${booking.time || 'No time'}</small>
-        </div>
-      </div>
-    `).join('');
+  if (userList) {
+    const users = firebaseAdminUsers || [];
+    if (!users.length) {
+      userList.innerHTML = '<div class="empty-state">No signed-in users yet.</div>';
+    } else {
+      userList.innerHTML = users.map((user) => {
+        const lastSeen = user.lastSeenAt && typeof user.lastSeenAt.toDate === 'function'
+          ? user.lastSeenAt.toDate()
+          : (user.lastSeenAt ? new Date(user.lastSeenAt) : null);
+        const lastSeenText = lastSeen && !Number.isNaN(lastSeen.getTime())
+          ? lastSeen.toLocaleString()
+          : 'Not available';
+        return `
+          <div class="admin-user-item">
+            ${user.photoURL ? `<img src="${escapeHTML(user.photoURL)}" alt="" />` : '<span class="admin-user-avatar" aria-hidden="true">G</span>'}
+            <div class="admin-user-details">
+              <strong>${escapeHTML(user.displayName || 'Google user')}</strong>
+              <p>${escapeHTML(user.email || 'No email')}</p>
+            </div>
+            <div class="admin-user-last-seen">
+              <span>Last seen</span>
+              <small>${escapeHTML(lastSeenText)}</small>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
   }
 }
 
@@ -447,10 +555,13 @@ if (cform) {
   });
 }
 
-function persistBooking(data) {
-  const bookings = getBookings();
-  bookings.unshift({
-    id: `booking-${Date.now()}`,
+async function persistBooking(data) {
+  if (!firestore || !firebaseCurrentUser || !firestoreModule) {
+    throw new Error('Please sign in with Google and make sure Firebase Firestore is enabled before booking.');
+  }
+
+  const booking = {
+    uid: firebaseCurrentUser.uid,
     name: data.name,
     email: data.email,
     phone: data.phone,
@@ -458,10 +569,259 @@ function persistBooking(data) {
     date: data.date,
     time: data.time,
     notes: data.notes,
-    createdAt: new Date().toISOString()
-  });
+    accountEmail: firebaseCurrentUser.email,
+    createdAt: firestoreModule.serverTimestamp()
+  };
+  await firestoreModule.addDoc(firestoreModule.collection(firestore, 'bookings'), booking);
+  const bookings = getBookings();
+  bookings.unshift({ ...booking, id: `booking-${Date.now()}`, createdAt: new Date().toISOString() });
   saveBookings(bookings);
 }
+
+function updateAuthLinks() {
+  const user = getSignedInUser();
+  document.querySelectorAll('[data-sign-in-link]').forEach((link) => {
+    link.textContent = user ? 'Sign Out' : 'Sign In';
+    link.title = user ? `Signed in as ${user.email}` : 'Sign in to book a session';
+    link.setAttribute('aria-label', user ? `Sign out ${user.email}` : 'Sign in');
+  });
+}
+
+function openSignInModal(callback) {
+  pendingSignInCallback = typeof callback === 'function' ? callback : null;
+  const modal = document.getElementById('authModal');
+  if (modal) {
+    modal.hidden = false;
+    document.getElementById('googleSignInButton').focus();
+  }
+}
+
+function closeSignInModal() {
+  const modal = document.getElementById('authModal');
+  if (modal) modal.hidden = true;
+  pendingSignInCallback = null;
+}
+
+function closeMobileMenu() {
+  if (!mobileNav || !burger) return;
+  mobileNav.classList.remove('open');
+  burger.querySelectorAll('span').forEach((span) => {
+    span.style.transform = '';
+    span.style.opacity = '';
+  });
+}
+
+function setAuthMessage(message, isError) {
+  const messageElement = document.getElementById('authMessage');
+  if (!messageElement) return;
+  messageElement.textContent = message || '';
+  messageElement.classList.toggle('auth-error', Boolean(isError));
+}
+
+function setAdminMessage(message, isError) {
+  const status = document.getElementById('adminAccessMessage');
+  const grid = document.getElementById('adminDashboard');
+  if (status) {
+    status.textContent = message;
+    status.classList.toggle('auth-error', Boolean(isError));
+    status.hidden = !message;
+  }
+  if (grid) grid.hidden = Boolean(message);
+}
+
+function stopAdminDataListeners() {
+  stopAdminListeners.forEach((unsubscribe) => unsubscribe());
+  stopAdminListeners = [];
+  firebaseAdminBookings = null;
+  firebaseAdminUsers = null;
+}
+
+function listenForAdminData() {
+  if (!firestore || !firestoreModule || stopAdminListeners.length) return;
+  const bookingsQuery = firestoreModule.query(
+    firestoreModule.collection(firestore, 'bookings'),
+    firestoreModule.orderBy('createdAt', 'desc')
+  );
+  const usersQuery = firestoreModule.query(
+    firestoreModule.collection(firestore, 'users'),
+    firestoreModule.orderBy('lastSeenAt', 'desc')
+  );
+
+  stopAdminListeners.push(firestoreModule.onSnapshot(bookingsQuery, (snapshot) => {
+    firebaseAdminBookings = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+    renderAdminDashboard();
+  }, (error) => {
+    setAdminMessage(`Could not load bookings: ${error.message}`, true);
+  }));
+  stopAdminListeners.push(firestoreModule.onSnapshot(usersQuery, (snapshot) => {
+    firebaseAdminUsers = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+    renderAdminDashboard();
+  }, (error) => {
+    setAdminMessage(`Could not load sign-in activity: ${error.message}`, true);
+  }));
+}
+
+async function handleFirebaseAuthState(user) {
+  const wasSignedIn = Boolean(firebaseCurrentUser);
+  firebaseCurrentUser = user;
+  updateAuthLinks();
+  const isAdminPage = document.body && document.body.getAttribute('data-admin-page') === 'true';
+  if (!user) {
+    if (wasSignedIn) pendingSignInCallback = null;
+    stopAdminDataListeners();
+    setAdminMessage(isAdminPage ? 'Sign in with the admin Google account to open this dashboard.' : '', false);
+    return;
+  }
+
+  try {
+    await firestoreModule.setDoc(firestoreModule.doc(firestore, 'users', user.uid), {
+      uid: user.uid,
+      displayName: user.displayName || '',
+      email: user.email || '',
+      photoURL: user.photoURL || '',
+      lastSeenAt: firestoreModule.serverTimestamp()
+    }, { merge: true });
+    setAuthMessage('', false);
+  } catch (error) {
+    setAuthMessage(`Signed in, but login activity could not be saved: ${error.message}`, true);
+  }
+
+  const isAdmin = user.email && user.email.toLowerCase() === ADMIN_EMAIL;
+  if (isAdminPage) {
+    if (!isAdmin) {
+      stopAdminDataListeners();
+      setAdminMessage(`Access denied. Sign in with ${ADMIN_EMAIL} to use the admin panel.`, true);
+      return;
+    }
+    setAdminMessage('', false);
+    listenForAdminData();
+  }
+
+  const callback = pendingSignInCallback;
+  pendingSignInCallback = null;
+  if (callback) {
+    try {
+      callback();
+    } catch (error) {
+      setAuthMessage(`Sign-in succeeded, but the requested action failed: ${error.message}`, true);
+    }
+  }
+}
+
+async function initializeFirebase() {
+  if (location.protocol === 'file:') {
+    throw new Error('Google sign-in requires localhost or an HTTPS website; open this project through a web server.');
+  }
+  const baseUrl = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}`;
+  const [appModule, authModule, dbModule] = await Promise.all([
+    import(`${baseUrl}/firebase-app.js`),
+    import(`${baseUrl}/firebase-auth.js`),
+    import(`${baseUrl}/firebase-firestore.js`)
+  ]);
+  firebaseApp = appModule.getApps().length ? appModule.getApp() : appModule.initializeApp(FIREBASE_CONFIG);
+  firebaseAuthModule = authModule;
+  firestoreModule = dbModule;
+  firebaseAuth = authModule.getAuth(firebaseApp);
+  firestore = dbModule.getFirestore(firebaseApp);
+  authModule.onAuthStateChanged(firebaseAuth, handleFirebaseAuthState, (error) => {
+    setAuthMessage(`Firebase sign-in error: ${error.message}`, true);
+  });
+}
+
+function initializeFirebaseAuthUI() {
+  const rootPrefix = /\/pages\//i.test(window.location.pathname) ? '../' : '';
+  const desktopNav = document.querySelector('#nav-links');
+  const mobileNavList = document.querySelector('#mobile-nav ul');
+  const adminPath = new URL(`${rootPrefix}admin.html`, window.location.href).pathname;
+
+  [desktopNav, mobileNavList].forEach((navList) => {
+    if (!navList) return;
+    navList.querySelectorAll('a').forEach((link) => {
+      const item = link.closest('li');
+      if (new URL(link.href).pathname === adminPath && item) item.remove();
+    });
+
+    const authItem = document.createElement('li');
+    authItem.innerHTML = `<a href="#sign-in" class="nav-auth-link${navList === mobileNavList ? ' mob-link' : ''}" data-sign-in-link>Sign In</a>`;
+    navList.appendChild(authItem);
+  });
+
+  const modal = document.createElement('div');
+  modal.id = 'authModal';
+  modal.className = 'auth-modal';
+  modal.hidden = true;
+  modal.innerHTML = `
+    <div class="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <button type="button" class="auth-close" aria-label="Close sign-in dialog">&times;</button>
+      <p class="tag">ARS Gallery</p>
+      <h2 id="authTitle">Sign in to continue</h2>
+      <p class="auth-demo-note">Sign in with your Google account to book a session.</p>
+      <p id="authMessage" class="auth-message" role="status"></p>
+      <button id="googleSignInButton" type="button" class="google-sign-in">
+        <span class="google-mark" aria-hidden="true">G</span>
+        Continue with Google
+      </button>
+      <a class="auth-admin-link" href="${rootPrefix}admin.html">Admin Panel</a>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal || event.target.closest('.auth-close')) closeSignInModal();
+  });
+
+  document.querySelectorAll('#mobile-nav .mob-link').forEach((link) => {
+    link.addEventListener('click', closeMobileMenu);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeSignInModal();
+  });
+
+  document.querySelectorAll('[data-sign-in-link]').forEach((link) => {
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
+      if (link.classList.contains('mob-link')) closeMobileMenu();
+      if (getSignedInUser()) {
+        if (firebaseAuth && firebaseAuthModule) {
+          firebaseAuthModule.signOut(firebaseAuth).catch((error) => {
+            setAuthMessage(`Could not sign out: ${error.message}`, true);
+            openSignInModal();
+          });
+        }
+        return;
+      }
+      openSignInModal();
+    });
+  });
+
+  document.getElementById('googleSignInButton').addEventListener('click', async () => {
+    const button = document.getElementById('googleSignInButton');
+    button.disabled = true;
+    try {
+      await firebaseReady;
+      if (!firebaseAuth || !firebaseAuthModule) {
+        throw new Error('Firebase could not be initialized. Check the Firebase setup and open this site through localhost or HTTPS.');
+      }
+      const provider = new firebaseAuthModule.GoogleAuthProvider();
+      await firebaseAuthModule.signInWithPopup(firebaseAuth, provider);
+      closeSignInModal();
+    } catch (error) {
+      setAuthMessage(error.message, true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  updateAuthLinks();
+  firebaseReady = initializeFirebase().catch((error) => {
+    setAuthMessage(error.message, true);
+    setAdminMessage(error.message, true);
+  });
+}
+
+window.getSignedInUser = getSignedInUser;
+window.openSignInModal = openSignInModal;
 
 /* ---- SCROLL REVEAL ---- */
 const revealEls = document.querySelectorAll(
@@ -489,226 +849,13 @@ if (revealEls.length) {
 window.addEventListener('DOMContentLoaded', () => {
   renderGalleryPage();
   renderAdminDashboard();
-  renderPackages();
-  renderPackageAdmin();
-  renderServiceTestimonials();
-  renderTestimonialPackages();
+  initializeFirebaseAuthUI();
+  if (typeof renderPackages === 'function') renderPackages();
+  if (typeof renderPackageAdmin === 'function') renderPackageAdmin();
+  if (typeof renderServiceTestimonials === 'function') renderServiceTestimonials();
+  if (typeof renderTestimonialPackages === 'function') renderTestimonialPackages();
 });
 
-const PACKAGE_STORAGE_KEY = 'ars_gallery_packages';
-
-function getDefaultPackages() {
-  return [
-    {
-      id: 'package-wedding',
-      title: 'Wedding Story',
-      price: 'LKR 85,000',
-      features: ['8 hours coverage', '2 photographers', 'Online gallery', 'Printed album']
-    },
-    {
-      id: 'package-portrait',
-      title: 'Portrait Signature',
-      price: 'LKR 35,000',
-      features: ['1 outfit change', 'Studio or outdoor', '16 edited portraits', 'Fast delivery'],
-      featured: true
-    },
-    {
-      id: 'package-event',
-      title: 'Event Moments',
-      price: 'LKR 55,000',
-      features: ['4 hours coverage', 'Candid storytelling', 'High-resolution gallery', 'Sneak peek set']
-    }
-  ];
-}
-
-function getPackages() {
-  try {
-    const raw = localStorage.getItem(PACKAGE_STORAGE_KEY);
-    if (!raw) return getDefaultPackages();
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length ? parsed : getDefaultPackages();
-  } catch (error) {
-    return getDefaultPackages();
-  }
-}
-
-function savePackages(packages) {
-  localStorage.setItem(PACKAGE_STORAGE_KEY, JSON.stringify(packages));
-}
-
-function renderPackages() {
-  const packageGrid = document.getElementById('packageGrid');
-  if (!packageGrid) return;
-
-  const packages = getPackages();
-  packageGrid.innerHTML = packages.map((pkg) => `
-    <div class="package-card ${pkg.featured ? 'featured' : ''}">
-      <h3>${pkg.title}</h3>
-      <div class="package-price">${pkg.price}</div>
-      <ul>
-        ${pkg.features.map((feature) => `<li>${feature}</li>`).join('')}
-      </ul>
-      <a href="booking.html" class="btn-primary">Book Now</a>
-    </div>
-  `).join('');
-}
-
-function renderPackageAdmin() {
-  const packageList = document.getElementById('adminPackageList');
-  if (!packageList) return;
-
-  const packages = getPackages();
-  packageList.innerHTML = packages.map((pkg) => `
-    <div class="package-admin-item">
-      <div>
-        <strong>${pkg.title}</strong><br />
-        <small>${pkg.price}</small>
-      </div>
-      <div class="admin-actions">
-        <button type="button" class="mini-delete" data-package-id="${pkg.id}">Delete</button>
-        <button type="button" class="btn-ghost package-edit-btn" data-package-id="${pkg.id}">Edit</button>
-      </div>
-    </div>
-  `).join('');
-
-  packageList.querySelectorAll('.mini-delete').forEach((button) => {
-    button.addEventListener('click', () => {
-      const packageId = button.getAttribute('data-package-id');
-      const updated = getPackages().filter((pkg) => pkg.id !== packageId);
-      savePackages(updated);
-      renderPackages();
-      renderPackageAdmin();
-    });
-  });
-
-  packageList.querySelectorAll('.package-edit-btn').forEach((button) => {
-    button.addEventListener('click', () => {
-      const packageId = button.getAttribute('data-package-id');
-      const packageItem = getPackages().find((pkg) => pkg.id === packageId);
-      if (!packageItem) return;
-
-      const titleInput = document.getElementById('packageTitle');
-      const priceInput = document.getElementById('packagePrice');
-      const featuresInput = document.getElementById('packageFeatures');
-      const submitBtn = document.querySelector('#packageForm button[type="submit"]');
-
-      if (titleInput) titleInput.value = packageItem.title;
-      if (priceInput) priceInput.value = packageItem.price;
-      if (featuresInput) featuresInput.value = (packageItem.features || []).join('\n');
-      if (submitBtn) {
-        submitBtn.textContent = 'Update Package';
-      }
-
-      const packageForm = document.getElementById('packageForm');
-      if (packageForm) {
-        packageForm.dataset.editingId = packageId;
-      }
-    });
-  });
-}
-
-function addPackageItem(payload) {
-  const title = (payload.title || '').trim();
-  const price = (payload.price || '').trim();
-  const features = (payload.features || '')
-    .split('\n')
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  if (!title || !price || !features.length) return;
-
-  const packageForm = document.getElementById('packageForm');
-  const editingId = packageForm ? packageForm.dataset.editingId : null;
-
-  if (editingId) {
-    const packages = getPackages().map((pkg) => {
-      if (pkg.id === editingId) {
-        return {
-          ...pkg,
-          title,
-          price,
-          features
-        };
-      }
-      return pkg;
-    });
-
-    savePackages(packages);
-    if (packageForm) {
-      packageForm.dataset.editingId = '';
-    }
-  } else {
-    const packages = getPackages();
-    packages.push({
-      id: `package-${Date.now()}`,
-      title,
-      price,
-      features,
-      featured: false
-    });
-
-    savePackages(packages);
-  }
-
-  renderPackages();
-  renderPackageAdmin();
-}
-
-const packageForm = document.getElementById('packageForm');
-if (packageForm) {
-  packageForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    const title = document.getElementById('packageTitle');
-    const price = document.getElementById('packagePrice');
-    const features = document.getElementById('packageFeatures');
-
-    addPackageItem({
-      title: title.value,
-      price: price.value,
-      features: features.value
-    });
-
-    packageForm.reset();
-    const submitBtn = packageForm.querySelector('button[type="submit"]');
-    if (submitBtn) submitBtn.textContent = 'Add Package';
-    delete packageForm.dataset.editingId;
-  });
-}
-
-/* ---- SERVICE TESTIMONIALS ---- */
-function renderServiceTestimonials() {
-  const container = document.getElementById('serviceTestimonials');
-  if (!container) return;
-
-  const testimonials = [
-    { name: 'Sarah & Michael', service: 'Wedding', text: 'The entire experience felt premium and personal. Every moment was captured beautifully.' },
-    { name: 'Amelia Torres', service: 'Portrait', text: 'I felt relaxed throughout the shoot and the final portraits looked amazing.' },
-    { name: 'Ricardo Mendez', service: 'Event', text: 'Our company event felt alive in every frame, and the delivery was incredibly fast.' }
-  ];
-
-  container.innerHTML = testimonials.map((item) => `
-    <div class="testimonial-mini-card">
-      <div class="tstars">★★★★★</div>
-      <p>“${item.text}”</p>
-      <strong>${item.name}</strong>
-      <span>${item.service} Client</span>
-    </div>
-  `).join('');
-}
-
-function renderTestimonialPackages() {
-  const container = document.getElementById('testimonialPackages');
-  if (!container) return;
-
-  const packages = getPackages();
-  container.innerHTML = packages.map((pkg) => `
-    <div class="package-card ${pkg.featured ? 'featured' : ''}">
-      <h3>${pkg.title}</h3>
-      <div class="package-price">${pkg.price}</div>
-      <ul>
-        ${pkg.features.map((feature) => `<li>${feature}</li>`).join('')}
-      </ul>
-      <a href="booking.html" class="btn-primary">Book Now</a>
-    </div>
-  `).join('');
-}
+window.getSignedInUser = getSignedInUser;
+window.openSignInModal = openSignInModal;
+window.persistBooking = persistBooking;

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Services | ARS Gallery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="../index.html" class="logo">
+        <img src="../images/ars_logo.jpg" alt="ARS Gallery Logo" class="logo-img" />
+        <div class="logo-text">
+          <span class="logo-ars">ARS</span>
+          <span class="logo-gallery">Gallery</span>
+        </div>
+      </a>
+      <span class="nav-tag">Photography Studio</span>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="../index.html">Home</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="services.html" class="active">Services</a></li>
+        <li><a href="gallery.html">Gallery</a></li>
+        <li><a href="testimonials.html">Packages</a></li>
+        <li><a href="booking.html">Booking</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+      <a href="booking.html" class="btn-book">Book Now</a>
+      <button class="burger" id="burger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <div class="mobile-nav" id="mobile-nav">
+      <ul>
+        <li><a href="../index.html" class="mob-link">Home</a></li>
+        <li><a href="about.html" class="mob-link">About</a></li>
+        <li><a href="services.html" class="mob-link">Services</a></li>
+        <li><a href="gallery.html" class="mob-link">Gallery</a></li>
+        <li><a href="testimonials.html" class="mob-link">Testimonials</a></li>
+        <li><a href="booking.html" class="mob-link">Booking</a></li>
+        <li><a href="contact.html" class="mob-link">Contact</a></li>
+      </ul>
+      <a href="booking.html" class="btn-book mob-link">Book Now</a>
+    </div>
+  </nav>
+
+  <main>
+    <section class="page-hero page-hero-services">
+      <div class="page-hero-inner">
+        <p class="tag">What We Offer</p>
+        <h1>Photography <em>Services</em> Tailored to Your Story</h1>
+      </div>
+    </section>
+
+    <section class="services page-section">
+      <div class="container">
+        <div class="svc-grid" id="servicesGrid">
+          <div class="svc-card">
+            <div class="svc-icon">💍</div>
+            <h3>Wedding Photography</h3>
+            <p>Beautifully captured wedding stories from ceremony to every candid smile and tear of joy.</p>
+            <ul><li>Full-day coverage</li><li>Edited gallery</li><li>Premium albums</li></ul>
+            <a href="booking.html" class="svc-link">Book →</a>
+          </div>
+          <div class="svc-card featured">
+            <div class="svc-badge">Most Popular</div>
+            <div class="svc-icon">🎭</div>
+            <h3>Portrait Sessions</h3>
+            <p>Studio and outdoor portraits that reveal your true personality, beauty, and unique story.</p>
+            <ul><li>Studio &amp; outdoor</li><li>Multiple looks</li><li>Quick delivery</li></ul>
+            <a href="booking.html" class="svc-link">Book →</a>
+          </div>
+          <div class="svc-card">
+            <div class="svc-icon">🎉</div>
+            <h3>Event Coverage</h3>
+            <p>Birthdays, anniversaries, corporate events — every celebration deserves to be remembered.</p>
+            <ul><li>Any event size</li><li>Candid captures</li><li>Fast turnaround</li></ul>
+            <a href="booking.html" class="svc-link">Book →</a>
+          </div>
+          <div class="svc-card">
+            <div class="svc-icon">👨‍👩‍👧</div>
+            <h3>Family Portraits</h3>
+            <p>Timeless family memories in beautiful settings that you and your loved ones will treasure forever.</p>
+            <ul><li>Natural settings</li><li>All ages welcome</li><li>Printed albums</li></ul>
+            <a href="booking.html" class="svc-link">Book →</a>
+          </div>
+          <div class="svc-card">
+            <div class="svc-icon">📦</div>
+            <h3>Product Photography</h3>
+            <p>High-quality product shots that make your brand shine and convert customers.</p>
+            <ul><li>E-commerce ready</li><li>Creative styling</li><li>High resolution</li></ul>
+            <a href="booking.html" class="svc-link">Book →</a>
+          </div>
+          <div class="svc-card">
+            <div class="svc-icon">🚁</div>
+            <h3>Aerial / Drone</h3>
+            <p>Breathtaking aerial shots adding a cinematic perspective to your events and properties.</p>
+            <ul><li>4K video</li><li>Wide coverage</li><li>Stunning views</li></ul>
+            <a href="booking.html" class="svc-link">Book →</a>
+          </div>
+        </div>
+
+        <div class="packages-section">
+          <div class="sec-head">
+            <p class="tag">Testimonials</p>
+            <h2>What our <em>clients</em> say</h2>
+          </div>
+          <div class="testimonial-grid" id="serviceTestimonials"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="foot-logo">
+          <img src="../images/ars_logo.jpg" alt="ARS Gallery" />
+          <div>
+            <span class="logo-ars">ARS</span>
+            <span class="logo-gallery">Gallery</span>
+          </div>
+        </div>
+        <p>“Capturamos tu mejor momento” — We capture your best moment, every time.</p>
+        <div class="foot-social">
+          <a href="https://www.facebook.com/p/Ars-Gallery-61563352197319/" target="_blank" aria-label="Facebook">f</a>
+          <a href="#" aria-label="Instagram">◎</a>
+          <a href="#" aria-label="WhatsApp">✆</a>
+        </div>
+      </div>
+      <div class="foot-nav">
+        <div class="fn-col">
+          <h5>Navigation</h5>
+          <ul>
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><a href="services.html">Services</a></li>
+            <li><a href="gallery.html">Gallery</a></li>
+          </ul>
+        </div>
+        <div class="fn-col">
+          <h5>Connect</h5>
+          <ul>
+            <li><a href="booking.html">Book a Session</a></li>
+            <li><a href="testimonials.html">Reviews</a></li>
+            <li><a href="https://www.facebook.com/p/Ars-Gallery-61563352197319/" target="_blank">Facebook</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <p>© 2026 ARS Gallery. All rights reserved.</p>
+      <a href="https://www.facebook.com/p/Ars-Gallery-61563352197319/" target="_blank">ARS Gallery on Facebook</a>
+    </div>
+  </footer>
+
+  <button class="btt" id="btt" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top">↑</button>
+  <script src="../script.js"></script>
+</body>
+</html>
