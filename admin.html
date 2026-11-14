@@ -59,10 +59,17 @@
         <div id="adminAccessMessage" class="admin-access-message" role="status">
           Checking Firebase sign-in...
           <br />
-          <a class="admin-signin-link" href="signin.html?returnTo=admin.html">Sign in with Google</a>
+          <a class="admin-signin-link" href="signin.html?returnTo=admin.html">Admin sign in</a>
         </div>
       </div>
       <div class="container admin-grid" id="adminDashboard" hidden>
+        <div class="admin-panel full-width" id="adminSetupPanel" hidden>
+          <h3>Setup</h3>
+          <p id="adminSetupMessage" class="auth-message" role="status"></p>
+          <button type="button" id="seedSampleData" class="btn-primary" hidden>Load sample data</button>
+        </div>
+        <p id="adminActionMessage" class="auth-message admin-panel full-width" role="status" aria-live="polite" hidden></p>
+
         <div class="admin-panel">
           <h3>Add Category</h3>
           <form id="categoryForm" class="admin-form">
@@ -179,16 +186,21 @@
     const packageForm = document.getElementById('packageForm');
     let uploadedAlbumImages = [];
 
+    function setUploadMessage(text, isError) {
+      albumUploadMessage.textContent = text;
+      albumUploadMessage.classList.toggle('auth-error', Boolean(isError));
+    }
+
     if (categoryForm) {
-      categoryForm.addEventListener('submit', (event) => {
+      categoryForm.addEventListener('submit', async (event) => {
         event.preventDefault();
-        addGalleryCategory(categoryName.value);
-        categoryForm.reset();
+        const added = await runAdminAction(() => addGalleryCategory(categoryName.value), 'Category added.');
+        if (added) categoryForm.reset();
       });
     }
 
     if (albumForm) {
-      albumForm.addEventListener('submit', (event) => {
+      albumForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         const albumData = {
           category: albumCategory.value,
@@ -197,28 +209,31 @@
           image: albumImage.value.trim(),
           images: uploadedAlbumImages
         };
-        try {
-          if (!addGalleryAlbum(albumData)) {
-            albumUploadMessage.textContent = 'Choose an image file or provide an image path before adding this album.';
-            return;
-          }
+        if (!albumData.category) {
+          setUploadMessage('Add a category first, then choose it for this album.', true);
+          return;
+        }
+        if (!albumData.images.length && !albumData.image) {
+          setUploadMessage('Choose an image file or provide an image path before adding this album.', true);
+          return;
+        }
+        setUploadMessage('Saving album...', false);
+        const added = await runAdminAction(() => addGalleryAlbum(albumData), 'Album added.');
+        if (added) {
           albumForm.reset();
           uploadedAlbumImages = [];
           albumPreviewList.innerHTML = '';
-          albumUploadMessage.textContent = '';
-        } catch (error) {
-          albumUploadMessage.textContent = `Album could not be saved: ${error.message}`;
-          albumUploadMessage.classList.add('auth-error');
+          setUploadMessage('', false);
+        } else {
+          setUploadMessage('', false);
         }
       });
     }
 
     if (packageForm) {
-      packageForm.addEventListener('submit', (event) => {
+      packageForm.addEventListener('submit', async (event) => {
         event.preventDefault();
-        const packages = getPackages();
-        packages.push({
-          id: `package-${Date.now()}`,
+        const added = await runAdminAction(() => addPackage({
           title: document.getElementById('packageTitle').value.trim(),
           price: document.getElementById('packagePrice').value.trim(),
           features: document.getElementById('packageFeatures').value
@@ -226,25 +241,28 @@
             .map((feature) => feature.trim())
             .filter(Boolean),
           featured: document.getElementById('packageFeatured').checked
-        });
-        savePackages(packages);
-        packageForm.reset();
-        renderAdminDashboard();
-        renderTestimonialPackages();
+        }).then(() => true), 'Package added.');
+        if (added) packageForm.reset();
       });
     }
+
+    document.getElementById('seedSampleData').addEventListener('click', () => {
+      runAdminAction(seedSampleData, 'Sample data loaded.');
+    });
 
     dropZone.addEventListener('click', () => {
       albumImages.click();
     });
 
-    albumImages.addEventListener('change', async (event) => {
-      try {
-        await handleImageUpload(event.target.files);
-      } catch (error) {
-        albumUploadMessage.textContent = error.message;
-        albumUploadMessage.classList.add('auth-error');
+    dropZone.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        albumImages.click();
       }
+    });
+
+    albumImages.addEventListener('change', (event) => {
+      handleImageUpload(event.target.files).catch((error) => setUploadMessage(error.message, true));
     });
 
     dropZone.addEventListener('dragover', (event) => {
@@ -260,36 +278,66 @@
       event.preventDefault();
       dropZone.classList.remove('drag-over');
       const files = Array.from(event.dataTransfer.files).filter((file) => file.type.startsWith('image/'));
-      handleImageUpload(files).catch((error) => {
-        albumUploadMessage.textContent = error.message;
-        albumUploadMessage.classList.add('auth-error');
-      });
+      handleImageUpload(files).catch((error) => setUploadMessage(error.message, true));
     });
+
+    // Resize + re-encode so several photos fit inside one Firestore document (~1 MiB).
+    function compressImage(file, maxSize, quality) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error(`Could not read ${file.name}.`));
+        };
+        img.src = url;
+      });
+    }
 
     async function handleImageUpload(files) {
       const fileArray = Array.from(files);
+      if (!fileArray.length) return;
       if (fileArray.some((file) => !file.type.startsWith('image/'))) {
         throw new Error('Please select image files only.');
       }
-      if (fileArray.some((file) => file.size > 1024 * 1024) ||
-          fileArray.reduce((total, file) => total + file.size, 0) > 2 * 1024 * 1024) {
-        throw new Error('For browser storage, images must be at most 1 MB each and 2 MB total per album.');
+      if (fileArray.length > 10) {
+        throw new Error('Please add at most 10 photos per album.');
       }
+      if (fileArray.some((file) => file.size > 20 * 1024 * 1024)) {
+        throw new Error('Each image must be smaller than 20 MB.');
+      }
+
+      setUploadMessage('Processing images...', false);
+      const attempts = [[1400, 0.8], [1100, 0.7], [900, 0.6], [700, 0.5]];
+      let result = null;
+      for (const [maxSize, quality] of attempts) {
+        const images = await Promise.all(fileArray.map((file) => compressImage(file, maxSize, quality)));
+        const total = images.reduce((sum, image) => sum + image.length, 0);
+        result = images;
+        if (total <= MAX_ALBUM_PAYLOAD_CHARS) break;
+        if (maxSize === attempts[attempts.length - 1][0]) {
+          throw new Error('These photos are still too large for one album. Add fewer photos per album.');
+        }
+      }
+
+      uploadedAlbumImages = result;
       albumPreviewList.innerHTML = '';
-      uploadedAlbumImages = await Promise.all(fileArray.map((file) => new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error(`Could not read ${file.name}.`));
-        reader.readAsDataURL(file);
-      })));
       uploadedAlbumImages.forEach((image) => {
-          const imgElement = document.createElement('img');
-          imgElement.src = image;
-          imgElement.classList.add('preview-image');
-          albumPreviewList.appendChild(imgElement);
+        const imgElement = document.createElement('img');
+        imgElement.src = image;
+        imgElement.classList.add('preview-image');
+        albumPreviewList.appendChild(imgElement);
       });
-      albumUploadMessage.textContent = `${uploadedAlbumImages.length} image${uploadedAlbumImages.length === 1 ? '' : 's'} ready.`;
-      albumUploadMessage.classList.remove('auth-error');
+      setUploadMessage(`${uploadedAlbumImages.length} image${uploadedAlbumImages.length === 1 ? '' : 's'} ready.`, false);
     }
 
     renderAdminDashboard();

@@ -7,12 +7,13 @@ import {
 
 const button = document.getElementById('googleSignInButton');
 const message = document.getElementById('authMessage');
-const userSignInForm = document.getElementById('userSignInForm');
 const adminSignInForm = document.getElementById('adminSignInForm');
 const adminSignInSection = document.getElementById('adminSignInSection');
 const adminSignInToggle = document.getElementById('toggleAdminSignIn');
 let services;
 let redirecting = false;
+let rejecting = false;
+let pendingMethod = null; // 'google' (clients) or 'password' (admin) for the sign-in the user just started
 
 function getRedirectTarget(user) {
   const page = user.uid === adminUid ? 'admin.html' : 'index.html';
@@ -73,11 +74,44 @@ async function savePendingBooking(user) {
   sessionStorage.removeItem('ars_pending_booking');
 }
 
-async function finishSignIn(user) {
-  if (redirecting) return;
-  if (user.uid === adminUid && !user.emailVerified) {
+function enableControls() {
+  document.querySelectorAll('.signin-card button').forEach((control) => { control.disabled = false; });
+}
+
+async function rejectSignIn(text) {
+  rejecting = true;
+  try {
+    await services.authModule.signOut(services.auth);
+  } finally {
+    pendingMethod = null;
+    rejecting = false;
+    enableControls();
+    showMessage(text, true);
+  }
+}
+
+async function finishSignIn(user, method) {
+  if (redirecting || rejecting) return;
+  const isAdminUser = user.uid === adminUid;
+  const hasGoogle = user.providerData.some((provider) => provider.providerId === 'google.com');
+
+  // Clients: Google only. Admin: email + password only.
+  if (method === 'google' && isAdminUser) {
+    await rejectSignIn('The admin account cannot use Google sign-in. Use Admin Sign In with the admin email and password.');
+    return;
+  }
+  if (method === 'password' && !isAdminUser) {
+    await rejectSignIn('Email and password sign-in is for the admin only. Clients, please continue with Google.');
+    return;
+  }
+  if (!method && !isAdminUser && !hasGoogle) {
+    await rejectSignIn('Clients must sign in with Google.');
+    return;
+  }
+
+  if (isAdminUser && !user.emailVerified) {
     showMessage('Verify the admin email address in Firebase Authentication before opening the dashboard.', true);
-    document.querySelectorAll('.signin-card button').forEach((control) => { control.disabled = false; });
+    enableControls();
     return;
   }
   redirecting = true;
@@ -104,7 +138,7 @@ async function initializeSignIn() {
   try {
     services = await getFirebaseServices();
     services.authModule.onAuthStateChanged(services.auth, (user) => {
-      if (user) finishSignIn(user);
+      if (user) finishSignIn(user, pendingMethod);
     }, (error) => {
       showMessage(`Firebase sign-in error: ${getSignInErrorMessage(error)}`, true);
     });
@@ -120,35 +154,22 @@ function handleGoogleSignIn() {
       services = firebaseServices;
       const provider = new services.authModule.GoogleAuthProvider();
       return services.authModule.signInWithPopup(services.auth, provider);
-    })
-    .then(async (result) => {
-      const user = result.user;
-      if (!user) throw new Error('Google sign-in completed without returning a user.');
-      await finishSignIn(user);
-    }));
+    }), 'google');
 }
 
-function runSignIn(signIn) {
-  const controls = [button, ...userSignInForm.querySelectorAll('button'), ...adminSignInForm.querySelectorAll('button')];
+function runSignIn(signIn, method) {
+  const controls = [button, ...adminSignInForm.querySelectorAll('button')];
   controls.forEach((control) => { control.disabled = true; });
   showMessage('', false);
+  pendingMethod = method;
   Promise.resolve()
     .then(signIn)
     .catch((error) => {
+      pendingMethod = null;
       controls.forEach((control) => { control.disabled = false; });
       showMessage(getSignInErrorMessage(error), true);
     });
 }
-
-userSignInForm.addEventListener('submit', (event) => {
-  event.preventDefault();
-  const email = document.getElementById('userEmail').value.trim();
-  const password = document.getElementById('userPassword').value;
-  runSignIn(async () => {
-    services = await getFirebaseServices();
-    await services.authModule.signInWithEmailAndPassword(services.auth, email, password);
-  });
-});
 
 adminSignInForm.addEventListener('submit', (event) => {
   event.preventDefault();
@@ -157,7 +178,7 @@ adminSignInForm.addEventListener('submit', (event) => {
   runSignIn(async () => {
     services = await getFirebaseServices();
     await services.authModule.signInWithEmailAndPassword(services.auth, email, password);
-  });
+  }, 'password');
 });
 
 adminSignInToggle.addEventListener('click', () => {

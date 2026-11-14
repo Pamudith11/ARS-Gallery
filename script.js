@@ -87,10 +87,8 @@ if (counters.length) {
 
 /* ---- GALLERY FILTER ---- */
 const STORAGE_KEYS = {
-  gallery: 'ars_gallery_state',
   bookings: 'ars_gallery_bookings'
 };
-const PACKAGE_STORAGE_KEY = 'ars_gallery_packages';
 
 let firebaseClient;
 let firebaseApp;
@@ -104,6 +102,25 @@ let firebaseAuthStateReady;
 let stopAdminListeners = [];
 let firebaseAdminBookings = null;
 let firebaseAdminUsers = null;
+
+// Gallery/package data now lives in Firestore (collections: categories, albums, packages).
+// null = not loaded yet.
+const siteData = {
+  categories: null,
+  albums: null,
+  packages: null,
+  failed: false,
+  errors: {}
+};
+let stopSiteListeners = [];
+
+function isAdminPage() {
+  return Boolean(document.body && document.body.getAttribute('data-admin-page') === 'true');
+}
+
+function isSiteDataLoading() {
+  return !siteData.failed && (siteData.categories === null || siteData.albums === null || siteData.packages === null);
+}
 
 function escapeHTML(value) {
   return String(value || '').replace(/[&<>"']/g, (character) => ({
@@ -156,24 +173,16 @@ function normalizeAlbum(album, index) {
 }
 
 function getGalleryState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.gallery);
-    if (!raw) return getDefaultGalleryState();
-    const parsed = JSON.parse(raw);
-    if (!parsed || !Array.isArray(parsed.categories) || !Array.isArray(parsed.albums)) {
-      return getDefaultGalleryState();
-    }
-    return {
-      categories: parsed.categories,
-      albums: parsed.albums.map(normalizeAlbum)
-    };
-  } catch (error) {
-    return getDefaultGalleryState();
+  if (siteData.categories === null || siteData.albums === null) {
+    return siteData.failed ? getDefaultGalleryState() : { categories: [], albums: [] };
   }
-}
-
-function saveGalleryState(value) {
-  localStorage.setItem(STORAGE_KEYS.gallery, JSON.stringify(value));
+  const isEmpty = !siteData.categories.length && !siteData.albums.length;
+  // Visitors see the sample content until the admin adds real data.
+  if (isEmpty && !isAdminPage()) return getDefaultGalleryState();
+  return {
+    categories: siteData.categories.map((category) => category.name),
+    albums: siteData.albums.map(normalizeAlbum)
+  };
 }
 
 function getBookings() {
@@ -214,41 +223,35 @@ function getDefaultPackages() {
 }
 
 function getPackages() {
-  try {
-    const raw = localStorage.getItem(PACKAGE_STORAGE_KEY);
-    if (!raw) return getDefaultPackages();
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : getDefaultPackages();
-  } catch (error) {
-    return getDefaultPackages();
+  if (siteData.packages === null) {
+    return siteData.failed ? getDefaultPackages() : [];
   }
-}
-
-function savePackages(packages) {
-  localStorage.setItem(PACKAGE_STORAGE_KEY, JSON.stringify(packages));
+  if (!siteData.packages.length && !isAdminPage()) return getDefaultPackages();
+  return siteData.packages;
 }
 
 function renderGalleryPage() {
   const filters = document.querySelector('.gal-filters');
   const grid = document.getElementById('gal-grid');
   if (!filters || !grid) return;
+  if (isSiteDataLoading()) return; // keep the static markup until Firestore answers
 
   const state = getGalleryState();
   const categoryNames = state.categories || [];
 
   filters.innerHTML = [
     '<button class="gf active" data-f="all">All</button>',
-    ...categoryNames.map((category) => `<button class="gf" data-f="${slugify(category)}">${category}</button>`)
+    ...categoryNames.map((category) => `<button class="gf" data-f="${escapeHTML(slugify(category))}">${escapeHTML(category)}</button>`)
   ].join('');
 
   grid.innerHTML = (state.albums || []).map((album) => {
-    const primaryImage = (album.images && album.images[0]) || '';
+    const primaryImage = escapeHTML((album.images && album.images[0]) || '');
     return `
-      <div class="gal-item" data-cat="${slugify(album.category)}">
-        <img src="${primaryImage}" alt="${album.title}" loading="lazy" />
+      <div class="gal-item" data-cat="${escapeHTML(slugify(album.category))}">
+        <img src="${primaryImage}" alt="${escapeHTML(album.title)}" loading="lazy" />
         <div class="gal-ov">
-          <h4>${album.title}</h4>
-          <p>${album.description}</p>
+          <h4>${escapeHTML(album.title)}</h4>
+          <p>${escapeHTML(album.description)}</p>
           <button onclick="lb(this)" data-s="${primaryImage}">View ⊕</button>
         </div>
       </div>
@@ -280,7 +283,32 @@ function bindGalleryFilters() {
   });
 }
 
-function renderAdminDashboard() {
+function renderAdminSetupPanel() {
+  const panel = document.getElementById('adminSetupPanel');
+  const text = document.getElementById('adminSetupMessage');
+  const seedButton = document.getElementById('seedSampleData');
+  if (!panel || !text) return;
+
+  const errorMessages = Object.values(siteData.errors);
+  if (errorMessages.length) {
+    panel.hidden = false;
+    text.textContent = `Could not load gallery data: ${errorMessages[0]} (Publish the updated firestore.rules in Firebase Console > Firestore Database > Rules.)`;
+    text.classList.add('auth-error');
+    if (seedButton) seedButton.hidden = true;
+    return;
+  }
+
+  const loaded = siteData.categories !== null && siteData.albums !== null && siteData.packages !== null;
+  const isEmpty = loaded && !siteData.categories.length && !siteData.albums.length && !siteData.packages.length;
+  panel.hidden = !isEmpty;
+  text.classList.remove('auth-error');
+  if (isEmpty) {
+    text.textContent = 'Your gallery database is empty, so visitors currently see built-in sample content. Load the sample categories, albums and packages to start editing them.';
+    if (seedButton) seedButton.hidden = false;
+  }
+}
+
+function renderAdminDashboard(options = {}) {
   const categoryList = document.getElementById('adminCategoryList');
   const albumList = document.getElementById('adminAlbumList');
   const packageList = document.getElementById('adminPackageList');
@@ -290,32 +318,36 @@ function renderAdminDashboard() {
 
   if (!categoryList && !albumList && !packageList && !bookingList && !userList) return;
 
+  renderAdminSetupPanel();
   const state = getGalleryState();
 
   if (categoryList) {
     categoryList.innerHTML = state.categories.map((category) => `
       <div class="admin-tag-card">
-        <span>${category}</span>
-        <button type="button" data-category="${category}" class="mini-delete">Delete</button>
+        <span>${escapeHTML(category)}</span>
+        <button type="button" data-category="${escapeHTML(category)}" class="mini-delete">Delete</button>
       </div>
     `).join('');
 
     categoryList.querySelectorAll('.mini-delete').forEach((button) => {
       button.addEventListener('click', () => {
         const category = button.getAttribute('data-category');
-        const nextState = {
-          categories: state.categories.filter((item) => item !== category),
-          albums: (state.albums || []).filter((album) => album.category !== category)
-        };
-        saveGalleryState(nextState);
-        renderAdminDashboard();
-        renderGalleryPage();
+        const albumCount = state.albums.filter((album) => album.category === category).length;
+        const warning = albumCount
+          ? `Delete the "${category}" category and its ${albumCount} album${albumCount === 1 ? '' : 's'}?`
+          : `Delete the "${category}" category?`;
+        if (!window.confirm(warning)) return;
+        runAdminAction(() => deleteGalleryCategory(category), 'Category deleted.');
       });
     });
   }
 
   if (categorySelect) {
-    categorySelect.innerHTML = state.categories.map((category) => `<option value="${category}">${category}</option>`).join('');
+    const previous = categorySelect.value;
+    categorySelect.innerHTML = state.categories
+      .map((category) => `<option value="${escapeHTML(category)}">${escapeHTML(category)}</option>`)
+      .join('');
+    if (previous && state.categories.includes(previous)) categorySelect.value = previous;
   }
 
   if (albumList) {
@@ -323,32 +355,27 @@ function renderAdminDashboard() {
       const images = album.images && album.images.length ? album.images : [''];
       return `
         <div class="admin-album-item">
-          <img src="${images[0]}" alt="${album.title}" />
+          <img src="${escapeHTML(images[0])}" alt="${escapeHTML(album.title)}" />
           <div>
-            <strong>${album.title}</strong>
-            <p>${album.category}</p>
-            <small>${album.description}</small>
+            <strong>${escapeHTML(album.title)}</strong>
+            <p>${escapeHTML(album.category)}</p>
+            <small>${escapeHTML(album.description)}${images.length > 1 ? ` • ${images.length} photos` : ''}</small>
           </div>
-          <button type="button" data-album-id="${album.id}" class="mini-delete">Remove</button>
+          <button type="button" data-album-id="${escapeHTML(album.id)}" class="mini-delete">Remove</button>
         </div>
       `;
     }).join('');
 
     albumList.querySelectorAll('.mini-delete').forEach((button) => {
       button.addEventListener('click', () => {
-        const albumId = button.getAttribute('data-album-id');
-        const nextState = {
-          categories: state.categories,
-          albums: (state.albums || []).filter((album) => album.id !== albumId)
-        };
-        saveGalleryState(nextState);
-        renderAdminDashboard();
-        renderGalleryPage();
+        if (!window.confirm('Remove this album?')) return;
+        runAdminAction(() => deleteGalleryAlbum(button.getAttribute('data-album-id')), 'Album removed.');
       });
     });
   }
 
-  if (packageList) {
+  // Booking/user snapshots must not wipe a package form the admin is typing in.
+  if (packageList && !(options.skipPackages && packageList.contains(document.activeElement))) {
     const packages = getPackages();
     packageList.innerHTML = packages.map((item) => `
       <form class="admin-package-item" data-package-id="${escapeHTML(item.id)}">
@@ -376,32 +403,26 @@ function renderAdminDashboard() {
       form.addEventListener('submit', (event) => {
         event.preventDefault();
         const formData = new FormData(form);
-        const packageId = form.getAttribute('data-package-id');
-        const nextPackages = getPackages().map((item) => item.id === packageId ? {
-          ...item,
+        runAdminAction(() => updatePackage(form.getAttribute('data-package-id'), {
           title: String(formData.get('title') || '').trim(),
           price: String(formData.get('price') || '').trim(),
           features: String(formData.get('features') || '').split('\n').map((feature) => feature.trim()).filter(Boolean),
           featured: formData.has('featured')
-        } : item);
-        savePackages(nextPackages);
-        renderAdminDashboard();
-        renderTestimonialPackages();
+        }), 'Package saved.');
       });
     });
 
     packageList.querySelectorAll('[data-delete-package]').forEach((button) => {
       button.addEventListener('click', () => {
-        const packageId = button.getAttribute('data-delete-package');
-        savePackages(getPackages().filter((item) => item.id !== packageId));
-        renderAdminDashboard();
-        renderTestimonialPackages();
+        if (!window.confirm('Delete this package?')) return;
+        runAdminAction(() => deletePackage(button.getAttribute('data-delete-package')), 'Package deleted.');
       });
     });
   }
 
   if (bookingList) {
-    const bookings = firebaseAdminBookings === null ? getBookings() : firebaseAdminBookings;
+    const canManageBookings = firebaseAdminBookings !== null;
+    const bookings = canManageBookings ? firebaseAdminBookings : getBookings();
     if (!bookings.length) {
       bookingList.innerHTML = '<div class="empty-state">No bookings yet.</div>';
     } else {
@@ -418,9 +439,17 @@ function renderAdminDashboard() {
             <small>Appointment: ${escapeHTML(booking.date || 'No date')} • ${escapeHTML(booking.time || 'No time')}</small>
             ${booking.createdAt ? `<small>Booked on: ${escapeHTML(formatBookingDate(booking.createdAt))}</small>` : ''}
             ${booking.notes ? `<p>${escapeHTML(booking.notes)}</p>` : ''}
+            ${canManageBookings && booking.id ? `<button type="button" class="mini-delete" data-booking-id="${escapeHTML(booking.id)}">Delete</button>` : ''}
           </div>
         </div>
       `).join('');
+
+      bookingList.querySelectorAll('[data-booking-id]').forEach((button) => {
+        button.addEventListener('click', () => {
+          if (!window.confirm('Delete this booking?')) return;
+          runAdminAction(() => deleteBooking(button.getAttribute('data-booking-id')), 'Booking deleted.');
+        });
+      });
     }
   }
 
@@ -443,7 +472,7 @@ function renderAdminDashboard() {
           : 'No bookings yet';
         return `
           <div class="admin-user-item">
-            ${user.photoURL ? `<img src="${escapeHTML(user.photoURL)}" alt="" />` : '<span class="admin-user-avatar" aria-hidden="true">G</span>'}
+            ${user.photoURL ? `<img src="${escapeHTML(user.photoURL)}" alt="" referrerpolicy="no-referrer" />` : '<span class="admin-user-avatar" aria-hidden="true">G</span>'}
             <div class="admin-user-details">
               <strong>${escapeHTML(user.displayName || 'Google user')}</strong>
               <p>${escapeHTML(user.email || 'No email')}</p>
@@ -470,6 +499,7 @@ function formatBookingDate(value) {
 function renderTestimonialPackages() {
   const container = document.getElementById('testimonialPackages');
   if (!container) return;
+  if (isSiteDataLoading()) return; // keep the static markup until Firestore answers
   container.innerHTML = getPackages().map((item) => `
     <article class="package-card${item.featured ? ' featured' : ''}">
       <h3>${escapeHTML(item.title)}</h3>
@@ -479,35 +509,183 @@ function renderTestimonialPackages() {
   `).join('');
 }
 
-function addGalleryCategory(categoryName) {
-  const value = categoryName.trim();
-  if (!value) return;
-  const state = getGalleryState();
-  const exists = state.categories.some((item) => item.toLowerCase() === value.toLowerCase());
-  if (exists) return;
-  state.categories.push(value);
-  saveGalleryState(state);
-  renderAdminDashboard();
-  renderGalleryPage();
+/* ---- ADMIN DATA (Firestore) ---- */
+const MAX_ALBUM_PAYLOAD_CHARS = 900000; // Firestore documents are limited to ~1 MiB
+
+function setAdminActionMessage(text, isError) {
+  const element = document.getElementById('adminActionMessage');
+  if (!element) return;
+  element.textContent = text || '';
+  element.hidden = !text;
+  element.classList.toggle('auth-error', Boolean(isError));
 }
 
-function addGalleryAlbum(payload) {
-  if (!payload.category || !payload.title) return false;
-  const state = getGalleryState();
+async function runAdminAction(action, successMessage) {
+  try {
+    setAdminActionMessage('Saving...', false);
+    const result = await action();
+    setAdminActionMessage(result === false ? '' : (successMessage || 'Saved.'), false);
+    return result;
+  } catch (error) {
+    setAdminActionMessage(getAdminErrorMessage(error), true);
+    return false;
+  }
+}
+
+function getAdminErrorMessage(error) {
+  if (error && error.code === 'permission-denied') {
+    return 'Permission denied. Make sure the updated firestore.rules are published and you are signed in with the admin account.';
+  }
+  return (error && error.message) || 'Something went wrong. Please try again.';
+}
+
+async function requireAdminFirestore() {
+  await firebaseReady;
+  await firebaseAuthStateReady;
+  if (!firestore || !firestoreModule || !firebaseClient) {
+    throw new Error('Firebase is not ready. Open the site through localhost or HTTPS and try again.');
+  }
+  if (!firebaseCurrentUser || firebaseCurrentUser.uid !== firebaseClient.adminUid) {
+    throw new Error('Only the admin account can change site content.');
+  }
+  return { db: firestore, fs: firestoreModule };
+}
+
+async function addGalleryCategory(categoryName) {
+  const value = String(categoryName || '').trim();
+  if (!value) return false;
+  const exists = getGalleryState().categories.some((item) => item.toLowerCase() === value.toLowerCase());
+  if (exists) throw new Error(`The category "${value}" already exists.`);
+  const { db, fs } = await requireAdminFirestore();
+  await fs.setDoc(fs.doc(db, 'categories', slugify(value)), { name: value, createdAt: Date.now() });
+  return true;
+}
+
+async function deleteGalleryCategory(categoryName) {
+  const { db, fs } = await requireAdminFirestore();
+  const category = (siteData.categories || []).find((item) => item.name === categoryName);
+  const batch = fs.writeBatch(db);
+  if (category) batch.delete(fs.doc(db, 'categories', category.id));
+  (siteData.albums || [])
+    .filter((album) => album.category === categoryName)
+    .forEach((album) => batch.delete(fs.doc(db, 'albums', album.id)));
+  await batch.commit();
+}
+
+async function addGalleryAlbum(payload) {
+  if (!payload.category || !String(payload.title || '').trim()) return false;
   const images = payload.images && payload.images.length ? payload.images : (payload.image ? [payload.image] : []);
   if (!images.length) return false;
-
-  state.albums.push({
-    id: `album-${Date.now()}`,
+  const payloadSize = images.reduce((total, image) => total + String(image).length, 0);
+  if (payloadSize > MAX_ALBUM_PAYLOAD_CHARS) {
+    throw new Error('These images are too large for one album. Upload fewer photos per album.');
+  }
+  const { db, fs } = await requireAdminFirestore();
+  await fs.addDoc(fs.collection(db, 'albums'), {
     category: payload.category,
-    title: payload.title,
-    description: payload.description || 'New album shot',
-    images
+    title: String(payload.title).trim(),
+    description: String(payload.description || '').trim() || 'New album shot',
+    images,
+    createdAt: Date.now()
   });
-  saveGalleryState(state);
-  renderAdminDashboard();
-  renderGalleryPage();
   return true;
+}
+
+async function deleteGalleryAlbum(albumId) {
+  const { db, fs } = await requireAdminFirestore();
+  await fs.deleteDoc(fs.doc(db, 'albums', albumId));
+}
+
+async function addPackage(data) {
+  const { db, fs } = await requireAdminFirestore();
+  await fs.addDoc(fs.collection(db, 'packages'), {
+    title: data.title,
+    price: data.price,
+    features: data.features,
+    featured: Boolean(data.featured),
+    createdAt: Date.now()
+  });
+}
+
+async function updatePackage(packageId, data) {
+  const { db, fs } = await requireAdminFirestore();
+  await fs.setDoc(fs.doc(db, 'packages', packageId), {
+    title: data.title,
+    price: data.price,
+    features: data.features,
+    featured: Boolean(data.featured)
+  }, { merge: true });
+}
+
+async function deletePackage(packageId) {
+  const { db, fs } = await requireAdminFirestore();
+  await fs.deleteDoc(fs.doc(db, 'packages', packageId));
+}
+
+async function deleteBooking(bookingId) {
+  const { db, fs } = await requireAdminFirestore();
+  await fs.deleteDoc(fs.doc(db, 'bookings', bookingId));
+}
+
+async function seedSampleData() {
+  const { db, fs } = await requireAdminFirestore();
+  const defaults = getDefaultGalleryState();
+  const now = Date.now();
+  const batch = fs.writeBatch(db);
+  defaults.categories.forEach((name, index) => {
+    batch.set(fs.doc(db, 'categories', slugify(name)), { name, createdAt: now + index });
+  });
+  defaults.albums.forEach((album, index) => {
+    batch.set(fs.doc(db, 'albums', album.id), {
+      category: album.category,
+      title: album.title,
+      description: album.description,
+      images: [album.image],
+      createdAt: now - index
+    });
+  });
+  getDefaultPackages().forEach((item, index) => {
+    batch.set(fs.doc(db, 'packages', item.id), {
+      title: item.title,
+      price: item.price,
+      features: item.features,
+      featured: Boolean(item.featured),
+      createdAt: now + index
+    });
+  });
+  await batch.commit();
+}
+
+function listenForSiteData() {
+  if (!firestore || !firestoreModule || stopSiteListeners.length) return;
+  const fs = firestoreModule;
+
+  const watch = (name, onData) => {
+    stopSiteListeners.push(fs.onSnapshot(fs.collection(firestore, name), (snapshot) => {
+      delete siteData.errors[name];
+      onData(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+      renderGalleryPage();
+      renderTestimonialPackages();
+      renderAdminDashboard({ skipPackages: name !== 'packages' });
+    }, (error) => {
+      console.error(`Could not load ${name}:`, error);
+      siteData.errors[name] = error.message;
+      siteData.failed = true;
+      renderGalleryPage();
+      renderTestimonialPackages();
+      renderAdminDashboard();
+    }));
+  };
+
+  watch('categories', (items) => {
+    siteData.categories = items.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  });
+  watch('albums', (items) => {
+    siteData.albums = items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  });
+  watch('packages', (items) => {
+    siteData.packages = items.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  });
 }
 
 /* ---- GALLERY FILTER ---- */
@@ -724,7 +902,7 @@ function setAdminMessage(message, isError, showSignIn = false) {
       const signInLink = document.createElement('a');
       signInLink.className = 'admin-signin-link';
       signInLink.href = 'signin.html?returnTo=admin.html';
-      signInLink.textContent = 'Sign in with Google';
+      signInLink.textContent = 'Admin sign in';
       status.append(document.createElement('br'), signInLink);
     }
     status.hidden = !message;
@@ -761,14 +939,14 @@ function listenForAdminData() {
   stopAdminListeners.push(firestoreModule.onSnapshot(bookingsQuery, (snapshot) => {
     firebaseAdminBookings = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
     document.getElementById('adminBookingList')?.classList.remove('auth-error');
-    renderAdminDashboard();
+    renderAdminDashboard({ skipPackages: true });
   }, (error) => {
     setAdminPanelError('adminBookingList', `Could not load bookings: ${error.message}`);
   }));
   stopAdminListeners.push(firestoreModule.onSnapshot(usersQuery, (snapshot) => {
     firebaseAdminUsers = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
     document.getElementById('adminUserList')?.classList.remove('auth-error');
-    renderAdminDashboard();
+    renderAdminDashboard({ skipPackages: true });
   }, (error) => {
     setAdminPanelError('adminUserList', `Could not load sign-in activity: ${error.message}`);
   }));
@@ -781,7 +959,7 @@ async function handleFirebaseAuthState(user) {
   if (!user) {
     stopAdminDataListeners();
     setAdminMessage(isAdminPage
-      ? 'Sign in with the admin Google account to open this dashboard.'
+      ? 'Sign in with the admin email and password to open this dashboard.'
       : '', false, isAdminPage);
     return;
   }
@@ -814,6 +992,7 @@ async function initializeFirebase() {
   firestore = services.firestore;
   firebaseAuthModule = services.authModule;
   firestoreModule = services.firestoreModule;
+  listenForSiteData();
   firebaseAuthStateReady = new Promise((resolve) => {
     firebaseAuthModule.onAuthStateChanged(firebaseAuth, (user) => {
       handleFirebaseAuthState(user);
@@ -860,6 +1039,9 @@ function initializeFirebaseAuthUI() {
 
   updateAuthLinks();
   firebaseReady = initializeFirebase().catch((error) => {
+    siteData.failed = true;
+    renderGalleryPage();
+    renderTestimonialPackages();
     if (document.body && document.body.getAttribute('data-admin-page') === 'true') {
       setAdminMessage(
         firebaseClient
