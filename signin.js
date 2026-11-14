@@ -12,6 +12,7 @@ function getRedirectTarget(user) {
 
 function showMessage(text, isError) {
   message.textContent = text;
+  message.hidden = !text;
   message.classList.toggle('auth-error', Boolean(isError));
 }
 
@@ -67,6 +68,7 @@ async function finishSignIn(user) {
   if (redirecting) return;
   redirecting = true;
   button.disabled = true;
+  showMessage('', false);
   try {
     await recordSignedInUser(user, services);
   } catch (error) {
@@ -100,7 +102,7 @@ async function initializeSignIn() {
 
 function handleGoogleSignIn() {
   button.disabled = true;
-  showMessage('Opening Google sign-in...', false);
+  showMessage('', false);
   getFirebaseServices()
     .then((firebaseServices) => {
       services = firebaseServices;
@@ -108,12 +110,9 @@ function handleGoogleSignIn() {
       return services.authModule.signInWithPopup(services.auth, provider);
     })
     .then(async (result) => {
-      const credential = services.authModule.GoogleAuthProvider.credentialFromResult(result);
-      const token = credential ? credential.accessToken : null;
       const user = result.user;
       if (!user) throw new Error('Google sign-in completed without returning a user.');
       await finishSignIn(user);
-      return token;
     })
     .catch((error) => {
       button.disabled = false;
