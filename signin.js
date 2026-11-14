@@ -1,7 +1,14 @@
-import { adminEmail, getFirebaseServices, recordSignedInUser } from './firebase-client.js';
+import {
+  adminEmail,
+  getFirebaseAuthErrorMessage,
+  getFirebaseServices,
+  recordSignedInUser
+} from './firebase-client.js';
 
 const button = document.getElementById('googleSignInButton');
 const message = document.getElementById('authMessage');
+const userSignInForm = document.getElementById('userSignInForm');
+const adminSignInForm = document.getElementById('adminSignInForm');
 let services;
 let redirecting = false;
 
@@ -17,19 +24,19 @@ function showMessage(text, isError) {
 }
 
 function getSignInErrorMessage(error) {
-  if (error.code === 'auth/unauthorized-domain') {
-    return `Add "${location.hostname}" to Firebase Console > Authentication > Settings > Authorized domains, then try again.`;
-  }
-  if (error.code === 'auth/operation-not-allowed') {
-    return 'Enable Google as a sign-in provider in Firebase Console > Authentication > Sign-in method.';
-  }
   if (error.code === 'auth/popup-blocked') {
     return 'Your browser blocked the Google sign-in popup. Allow popups for this site and try again.';
   }
   if (error.code === 'auth/popup-closed-by-user') {
     return 'The Google sign-in window was closed before sign-in completed.';
   }
-  return error.message || 'Google sign-in failed. Please try again.';
+  if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+    return 'Email or password is incorrect.';
+  }
+  if (error.code === 'auth/weak-password') {
+    return 'The password must contain at least 6 characters.';
+  }
+  return getFirebaseAuthErrorMessage(error);
 }
 
 async function savePendingBooking(user) {
@@ -66,6 +73,11 @@ async function savePendingBooking(user) {
 
 async function finishSignIn(user) {
   if (redirecting) return;
+  if (user.email && user.email.toLowerCase() === adminEmail && !user.emailVerified) {
+    showMessage('Verify the admin email address in Firebase Authentication before opening the dashboard.', true);
+    document.querySelectorAll('.signin-card button').forEach((control) => { control.disabled = false; });
+    return;
+  }
   redirecting = true;
   button.disabled = true;
   showMessage('', false);
@@ -80,7 +92,7 @@ async function finishSignIn(user) {
   } catch (error) {
     showMessage(`Signed in, but your booking could not be saved: ${error.message}`, true);
     redirecting = false;
-    button.disabled = false;
+    document.querySelectorAll('.signin-card button').forEach((control) => { control.disabled = false; });
     return;
   }
   location.replace(getRedirectTarget(user));
@@ -101,9 +113,7 @@ async function initializeSignIn() {
 }
 
 function handleGoogleSignIn() {
-  button.disabled = true;
-  showMessage('', false);
-  getFirebaseServices()
+  runSignIn(() => getFirebaseServices()
     .then((firebaseServices) => {
       services = firebaseServices;
       const provider = new services.authModule.GoogleAuthProvider();
@@ -113,12 +123,44 @@ function handleGoogleSignIn() {
       const user = result.user;
       if (!user) throw new Error('Google sign-in completed without returning a user.');
       await finishSignIn(user);
-    })
+    }));
+}
+
+function runSignIn(signIn) {
+  const controls = [button, ...userSignInForm.querySelectorAll('button'), ...adminSignInForm.querySelectorAll('button')];
+  controls.forEach((control) => { control.disabled = true; });
+  showMessage('', false);
+  Promise.resolve()
+    .then(signIn)
     .catch((error) => {
-      button.disabled = false;
+      controls.forEach((control) => { control.disabled = false; });
       showMessage(getSignInErrorMessage(error), true);
     });
 }
+
+userSignInForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const email = document.getElementById('userEmail').value.trim();
+  const password = document.getElementById('userPassword').value;
+  runSignIn(async () => {
+    services = await getFirebaseServices();
+    await services.authModule.signInWithEmailAndPassword(services.auth, email, password);
+  });
+});
+
+adminSignInForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const email = document.getElementById('adminEmail').value.trim();
+  const password = document.getElementById('adminPassword').value;
+  if (email.toLowerCase() !== adminEmail) {
+    showMessage(`Use the authorized admin email: ${adminEmail}`, true);
+    return;
+  }
+  runSignIn(async () => {
+    services = await getFirebaseServices();
+    await services.authModule.signInWithEmailAndPassword(services.auth, email, password);
+  });
+});
 
 button.addEventListener('click', handleGoogleSignIn);
 window.handleGoogleSignIn = handleGoogleSignIn;

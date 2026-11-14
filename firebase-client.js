@@ -13,6 +13,22 @@ export const adminEmail = 'pamudith11@gmail.com';
 
 let firebaseServices;
 
+export function getFirebaseAuthErrorMessage(error) {
+  if (error.code === 'auth/api-key-not-valid' || error.code === 'auth/invalid-api-key') {
+    return 'The Firebase Web API key in firebase-client.js is invalid. Copy the current web app config from Firebase Console > Project settings > General > Your apps and replace the config.';
+  }
+  if (error.code === 'auth/configuration-not-found') {
+    return 'Firebase could not find this app’s Authentication configuration. Confirm the web app config in firebase-client.js belongs to ars-gallery-9ea0e, then check Firebase Console > Authentication and enable Google sign-in.';
+  }
+  if (error.code === 'auth/operation-not-allowed') {
+    return 'This sign-in method is disabled. Enable Google and Email/Password under Firebase Console > Authentication > Sign-in method.';
+  }
+  if (error.code === 'auth/unauthorized-domain') {
+    return `Add "${location.hostname}" to Firebase Console > Authentication > Settings > Authorized domains.`;
+  }
+  return error.message || 'Firebase sign-in failed. Please try again.';
+}
+
 export async function getFirebaseServices() {
   if (firebaseServices) return firebaseServices;
 

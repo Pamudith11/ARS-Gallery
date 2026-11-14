@@ -19,13 +19,42 @@
     <section class="auth-dialog signin-card" aria-labelledby="signinTitle">
       <p class="tag">ARS Gallery</p>
       <h1 id="signinTitle">Welcome <em>back</em></h1>
-      <p class="auth-demo-note">Sign in with your Google account to continue or book a session.</p>
+      <p class="auth-demo-note">Sign in to continue or book a photography session. Email/password accounts must already be registered.</p>
+      <form id="userSignInForm" class="signin-form">
+        <label class="auth-field">
+          <span>Email</span>
+          <input id="userEmail" name="email" type="email" autocomplete="username" required />
+        </label>
+        <label class="auth-field">
+          <span>Password</span>
+          <input id="userPassword" name="password" type="password" autocomplete="current-password" required />
+        </label>
+        <button type="submit" class="btn-primary signin-submit">Sign In</button>
+      </form>
+
+      <div class="signin-divider"><span>or</span></div>
       <button id="googleSignInButton" type="button" class="google-sign-in">
         <span class="google-mark" aria-hidden="true">G</span>
         Continue with Google
       </button>
+
+      <section class="admin-signin-section" aria-labelledby="adminSignInTitle">
+        <h2 id="adminSignInTitle">Admin Sign In</h2>
+        <p class="auth-demo-note">Use the verified admin account registered in Firebase Authentication.</p>
+        <form id="adminSignInForm" class="signin-form">
+          <label class="auth-field">
+            <span>Admin email</span>
+            <input id="adminEmail" name="email" type="email" autocomplete="username" required />
+          </label>
+          <label class="auth-field">
+            <span>Password</span>
+            <input id="adminPassword" name="password" type="password" autocomplete="current-password" required />
+          </label>
+          <button type="submit" class="btn-primary signin-submit">Admin Sign In</button>
+        </form>
+      </section>
+
       <p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>
-      <a class="auth-admin-link" href="signin.html?returnTo=admin.html">Admin Panel</a>
     </section>
 
     <a class="signin-home-link" href="index.html">← Back to ARS Gallery</a>

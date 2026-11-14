@@ -90,6 +90,7 @@ const STORAGE_KEYS = {
   gallery: 'ars_gallery_state',
   bookings: 'ars_gallery_bookings'
 };
+const PACKAGE_STORAGE_KEY = 'ars_gallery_packages';
 
 let firebaseClient;
 let firebaseApp;
@@ -217,7 +218,7 @@ function getPackages() {
     const raw = localStorage.getItem(PACKAGE_STORAGE_KEY);
     if (!raw) return getDefaultPackages();
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length ? parsed : getDefaultPackages();
+    return Array.isArray(parsed) ? parsed : getDefaultPackages();
   } catch (error) {
     return getDefaultPackages();
   }
@@ -282,11 +283,12 @@ function bindGalleryFilters() {
 function renderAdminDashboard() {
   const categoryList = document.getElementById('adminCategoryList');
   const albumList = document.getElementById('adminAlbumList');
+  const packageList = document.getElementById('adminPackageList');
   const bookingList = document.getElementById('adminBookingList');
   const userList = document.getElementById('adminUserList');
   const categorySelect = document.getElementById('albumCategory');
 
-  if (!categoryList && !albumList && !bookingList && !userList) return;
+  if (!categoryList && !albumList && !packageList && !bookingList && !userList) return;
 
   const state = getGalleryState();
 
@@ -346,6 +348,58 @@ function renderAdminDashboard() {
     });
   }
 
+  if (packageList) {
+    const packages = getPackages();
+    packageList.innerHTML = packages.map((item) => `
+      <form class="admin-package-item" data-package-id="${escapeHTML(item.id)}">
+        <label class="auth-field">Package name
+          <input name="title" value="${escapeHTML(item.title)}" required />
+        </label>
+        <label class="auth-field">Price
+          <input name="price" value="${escapeHTML(item.price)}" required />
+        </label>
+        <label class="auth-field">Features (one per line)
+          <textarea name="features" rows="4">${escapeHTML((item.features || []).join('\n'))}</textarea>
+        </label>
+        <label class="admin-featured-toggle">
+          <input name="featured" type="checkbox" ${item.featured ? 'checked' : ''} />
+          Highlight this package
+        </label>
+        <div class="admin-package-actions">
+          <button type="submit" class="btn-primary">Save Package</button>
+          <button type="button" class="mini-delete" data-delete-package="${escapeHTML(item.id)}">Delete</button>
+        </div>
+      </form>
+    `).join('');
+
+    packageList.querySelectorAll('.admin-package-item').forEach((form) => {
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const packageId = form.getAttribute('data-package-id');
+        const nextPackages = getPackages().map((item) => item.id === packageId ? {
+          ...item,
+          title: String(formData.get('title') || '').trim(),
+          price: String(formData.get('price') || '').trim(),
+          features: String(formData.get('features') || '').split('\n').map((feature) => feature.trim()).filter(Boolean),
+          featured: formData.has('featured')
+        } : item);
+        savePackages(nextPackages);
+        renderAdminDashboard();
+        renderTestimonialPackages();
+      });
+    });
+
+    packageList.querySelectorAll('[data-delete-package]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const packageId = button.getAttribute('data-delete-package');
+        savePackages(getPackages().filter((item) => item.id !== packageId));
+        renderAdminDashboard();
+        renderTestimonialPackages();
+      });
+    });
+  }
+
   if (bookingList) {
     const bookings = firebaseAdminBookings === null ? getBookings() : firebaseAdminBookings;
     if (!bookings.length) {
@@ -361,7 +415,8 @@ function renderAdminDashboard() {
           </div>
           <div>
             <span>${escapeHTML(booking.service || 'Session')}</span>
-            <small>${escapeHTML(booking.date || 'No date')} • ${escapeHTML(booking.time || 'No time')}</small>
+            <small>Appointment: ${escapeHTML(booking.date || 'No date')} • ${escapeHTML(booking.time || 'No time')}</small>
+            ${booking.createdAt ? `<small>Booked on: ${escapeHTML(formatBookingDate(booking.createdAt))}</small>` : ''}
             ${booking.notes ? `<p>${escapeHTML(booking.notes)}</p>` : ''}
           </div>
         </div>
@@ -371,6 +426,7 @@ function renderAdminDashboard() {
 
   if (userList) {
     const users = firebaseAdminUsers || [];
+    const bookings = firebaseAdminBookings || [];
     if (!users.length) {
       userList.innerHTML = '<div class="empty-state">No signed-in users yet.</div>';
     } else {
@@ -381,12 +437,17 @@ function renderAdminDashboard() {
         const lastSeenText = lastSeen && !Number.isNaN(lastSeen.getTime())
           ? lastSeen.toLocaleString()
           : 'Not available';
+        const userBookings = bookings.filter((booking) => booking.uid === user.uid);
+        const bookingSummary = userBookings.length
+          ? `Booked ${userBookings.length} session${userBookings.length === 1 ? '' : 's'}: ${userBookings.map((booking) => booking.date || 'Date pending').join(', ')}`
+          : 'No bookings yet';
         return `
           <div class="admin-user-item">
             ${user.photoURL ? `<img src="${escapeHTML(user.photoURL)}" alt="" />` : '<span class="admin-user-avatar" aria-hidden="true">G</span>'}
             <div class="admin-user-details">
               <strong>${escapeHTML(user.displayName || 'Google user')}</strong>
               <p>${escapeHTML(user.email || 'No email')}</p>
+              <small>${escapeHTML(bookingSummary)}</small>
             </div>
             <div class="admin-user-last-seen">
               <span>Last seen</span>
@@ -397,6 +458,25 @@ function renderAdminDashboard() {
       }).join('');
     }
   }
+}
+
+function formatBookingDate(value) {
+  const date = value && typeof value.toDate === 'function'
+    ? value.toDate()
+    : new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Not available' : date.toLocaleString();
+}
+
+function renderTestimonialPackages() {
+  const container = document.getElementById('testimonialPackages');
+  if (!container) return;
+  container.innerHTML = getPackages().map((item) => `
+    <article class="package-card${item.featured ? ' featured' : ''}">
+      <h3>${escapeHTML(item.title)}</h3>
+      <p class="package-price">${escapeHTML(item.price)}</p>
+      <ul>${(item.features || []).map((feature) => `<li>${escapeHTML(feature)}</li>`).join('')}</ul>
+    </article>
+  `).join('');
 }
 
 function addGalleryCategory(categoryName) {
@@ -412,10 +492,10 @@ function addGalleryCategory(categoryName) {
 }
 
 function addGalleryAlbum(payload) {
-  if (!payload.category || !payload.title) return;
+  if (!payload.category || !payload.title) return false;
   const state = getGalleryState();
   const images = payload.images && payload.images.length ? payload.images : (payload.image ? [payload.image] : []);
-  if (!images.length) return;
+  if (!images.length) return false;
 
   state.albums.push({
     id: `album-${Date.now()}`,
@@ -427,6 +507,7 @@ function addGalleryAlbum(payload) {
   saveGalleryState(state);
   renderAdminDashboard();
   renderGalleryPage();
+  return true;
 }
 
 /* ---- GALLERY FILTER ---- */
@@ -685,11 +766,16 @@ async function handleFirebaseAuthState(user) {
     if (isAdminPage) setAdminMessage(`Could not update sign-in activity: ${error.message}`, true);
   }
 
-  const isAdmin = user.email && user.email.toLowerCase() === firebaseClient.adminEmail;
+  const isAdmin = user.email
+    && user.email.toLowerCase() === firebaseClient.adminEmail
+    && user.emailVerified;
   if (isAdminPage) {
     if (!isAdmin) {
       stopAdminDataListeners();
-      setAdminMessage(`Access denied. Sign in with ${firebaseClient.adminEmail} to use the admin panel.`, true);
+      const message = user.email && user.email.toLowerCase() === firebaseClient.adminEmail
+        ? 'Verify the admin email address in Firebase Authentication before opening the dashboard.'
+        : `Access denied. Sign in with ${firebaseClient.adminEmail} to use the admin panel.`;
+      setAdminMessage(message, true);
       return;
     }
     setAdminMessage('', false);
@@ -711,7 +797,7 @@ async function initializeFirebase() {
       resolve(user);
     }, (error) => {
       if (document.body && document.body.getAttribute('data-admin-page') === 'true') {
-        setAdminMessage(`Firebase sign-in error: ${error.message}`, true);
+        setAdminMessage(`Firebase sign-in error: ${firebaseClient.getFirebaseAuthErrorMessage(error)}`, true);
       }
       resolve(null);
     });
@@ -752,7 +838,12 @@ function initializeFirebaseAuthUI() {
   updateAuthLinks();
   firebaseReady = initializeFirebase().catch((error) => {
     if (document.body && document.body.getAttribute('data-admin-page') === 'true') {
-      setAdminMessage(error.message, true);
+      setAdminMessage(
+        firebaseClient
+          ? firebaseClient.getFirebaseAuthErrorMessage(error)
+          : error.message,
+        true
+      );
     }
   });
 }

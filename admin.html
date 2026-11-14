@@ -90,6 +90,7 @@
             </div>
 
             <div id="albumPreviewList" class="album-preview-list"></div>
+            <p id="albumUploadMessage" class="auth-message" role="status" aria-live="polite"></p>
 
             <input id="albumImage" type="text" placeholder="Or paste one image path (optional)" />
             <button type="submit" class="btn-primary">Add Album</button>
@@ -99,12 +100,27 @@
         </div>
 
         <div class="admin-panel full-width">
+          <h3>Packages</h3>
+          <form id="packageForm" class="admin-form">
+            <input id="packageTitle" type="text" placeholder="Package name" required />
+            <input id="packagePrice" type="text" placeholder="Price (e.g. LKR 45,000)" required />
+            <textarea id="packageFeatures" rows="4" placeholder="Package features (one per line)" required></textarea>
+            <label class="admin-featured-toggle">
+              <input id="packageFeatured" type="checkbox" />
+              Highlight this package
+            </label>
+            <button type="submit" class="btn-primary">Add Package</button>
+          </form>
+          <div class="admin-list" id="adminPackageList"></div>
+        </div>
+
+        <div class="admin-panel full-width">
           <h3>Bookings</h3>
           <div class="admin-list" id="adminBookingList"></div>
         </div>
 
         <div class="admin-panel full-width">
-          <h3>Google Sign-ins</h3>
+          <h3>Signed-in Users</h3>
           <div class="admin-list" id="adminUserList"></div>
         </div>
       </div>
@@ -159,6 +175,9 @@
     const albumImages = document.getElementById('albumImages');
     const dropZone = document.getElementById('dropZone');
     const albumPreviewList = document.getElementById('albumPreviewList');
+    const albumUploadMessage = document.getElementById('albumUploadMessage');
+    const packageForm = document.getElementById('packageForm');
+    let uploadedAlbumImages = [];
 
     if (categoryForm) {
       categoryForm.addEventListener('submit', (event) => {
@@ -175,11 +194,43 @@
           category: albumCategory.value,
           title: albumTitle.value,
           description: albumDescription.value,
-          image: albumImage.value
+          image: albumImage.value.trim(),
+          images: uploadedAlbumImages
         };
-        addGalleryAlbum(albumData);
-        albumForm.reset();
-        albumPreviewList.innerHTML = '';
+        try {
+          if (!addGalleryAlbum(albumData)) {
+            albumUploadMessage.textContent = 'Choose an image file or provide an image path before adding this album.';
+            return;
+          }
+          albumForm.reset();
+          uploadedAlbumImages = [];
+          albumPreviewList.innerHTML = '';
+          albumUploadMessage.textContent = '';
+        } catch (error) {
+          albumUploadMessage.textContent = `Album could not be saved: ${error.message}`;
+          albumUploadMessage.classList.add('auth-error');
+        }
+      });
+    }
+
+    if (packageForm) {
+      packageForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const packages = getPackages();
+        packages.push({
+          id: `package-${Date.now()}`,
+          title: document.getElementById('packageTitle').value.trim(),
+          price: document.getElementById('packagePrice').value.trim(),
+          features: document.getElementById('packageFeatures').value
+            .split('\n')
+            .map((feature) => feature.trim())
+            .filter(Boolean),
+          featured: document.getElementById('packageFeatured').checked
+        });
+        savePackages(packages);
+        packageForm.reset();
+        renderAdminDashboard();
+        renderTestimonialPackages();
       });
     }
 
@@ -187,23 +238,58 @@
       albumImages.click();
     });
 
-    albumImages.addEventListener('change', (event) => {
-      handleImageUpload(event.target.files);
+    albumImages.addEventListener('change', async (event) => {
+      try {
+        await handleImageUpload(event.target.files);
+      } catch (error) {
+        albumUploadMessage.textContent = error.message;
+        albumUploadMessage.classList.add('auth-error');
+      }
     });
 
-    function handleImageUpload(files) {
+    dropZone.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      dropZone.classList.add('drag-over');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('drag-over');
+    });
+
+    dropZone.addEventListener('drop', (event) => {
+      event.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const files = Array.from(event.dataTransfer.files).filter((file) => file.type.startsWith('image/'));
+      handleImageUpload(files).catch((error) => {
+        albumUploadMessage.textContent = error.message;
+        albumUploadMessage.classList.add('auth-error');
+      });
+    });
+
+    async function handleImageUpload(files) {
       const fileArray = Array.from(files);
+      if (fileArray.some((file) => !file.type.startsWith('image/'))) {
+        throw new Error('Please select image files only.');
+      }
+      if (fileArray.some((file) => file.size > 1024 * 1024) ||
+          fileArray.reduce((total, file) => total + file.size, 0) > 2 * 1024 * 1024) {
+        throw new Error('For browser storage, images must be at most 1 MB each and 2 MB total per album.');
+      }
       albumPreviewList.innerHTML = '';
-      fileArray.forEach((file) => {
+      uploadedAlbumImages = await Promise.all(fileArray.map((file) => new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error(`Could not read ${file.name}.`));
+        reader.readAsDataURL(file);
+      })));
+      uploadedAlbumImages.forEach((image) => {
           const imgElement = document.createElement('img');
-          imgElement.src = e.target.result;
+          imgElement.src = image;
           imgElement.classList.add('preview-image');
           albumPreviewList.appendChild(imgElement);
-        };
-        reader.readAsDataURL(file);
       });
+      albumUploadMessage.textContent = `${uploadedAlbumImages.length} image${uploadedAlbumImages.length === 1 ? '' : 's'} ready.`;
+      albumUploadMessage.classList.remove('auth-error');
     }
 
     renderAdminDashboard();

@@ -1048,6 +1048,39 @@ ul { list-style: none; }
   text-align: right;
   font-size: 0.8rem;
 }
+.admin-package-item {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.02);
+}
+.admin-package-item .auth-field:nth-child(3),
+.admin-package-actions { grid-column: 1 / -1; }
+.admin-package-item .auth-field { color: var(--text-muted); }
+.admin-package-item input,
+.admin-package-item textarea,
+.admin-form textarea {
+  width: 100%;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+  color: var(--white);
+  font: inherit;
+}
+.admin-featured-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+.admin-featured-toggle input { accent-color: var(--gold); }
+.admin-package-actions { display: flex; gap: 0.75rem; align-items: center; }
+.admin-booking-item > div { display: flex; flex-direction: column; gap: 0.3rem; }
 
 @media (max-width: 1200px) and (min-width: 769px) {
   .nav-links { gap: 0.75rem; }
@@ -1072,6 +1105,36 @@ ul { list-style: none; }
   gap: 1.5rem;
   padding: 2rem 1.25rem;
 }
+.signin-card {
+  width: min(100%, 500px);
+}
+.signin-form { margin-top: 1rem; }
+.signin-submit { width: 100%; }
+.signin-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.15rem 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+.signin-divider::before,
+.signin-divider::after {
+  content: '';
+  height: 1px;
+  flex: 1;
+  background: rgba(255,255,255,0.12);
+}
+.admin-signin-section {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+.admin-signin-section h2 { margin: 0 0 0.4rem; color: var(--white); font-size: 1.1rem; }
+.admin-signin-section .auth-demo-note { margin: 0; }
+.signin-form .auth-field { margin: 0; color: var(--text-muted); }
+.signin-form .auth-field input { margin-top: 0.4rem; }
 .signin-logo {
   display: flex;
   align-items: center;
