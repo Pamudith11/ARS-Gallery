@@ -8,28 +8,376 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ===== SIGN-IN PAGE SHELL ===== */
+    body.signin-page {
+      min-height: 100vh;
+      background: radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.1) 0%, transparent 65%), #0a0a0a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5rem 1rem;
+    }
+
+    .signin-wrap {
+      width: 100%;
+      max-width: 460px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    /* Logo */
+    .signin-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+    }
+    .signin-logo img {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      border: 2px solid rgba(201,168,76,0.4);
+      object-fit: cover;
+    }
+    .signin-logo-text strong {
+      display: block;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.35rem;
+      color: var(--gold);
+      line-height: 1;
+    }
+    .signin-logo-text small {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+    }
+
+    /* Main Container Card */
+    .signin-card {
+      width: 100%;
+      background: #121212;
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 20px;
+      padding: 2.2rem 2rem;
+      box-shadow: 0 25px 70px rgba(0,0,0,0.6);
+    }
+
+    /* Section Headings */
+    .client-header {
+      margin-bottom: 1.5rem;
+    }
+    .client-header .tag {
+      font-size: 0.68rem;
+      margin-bottom: 0.5rem;
+    }
+    .client-header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.65rem;
+      color: var(--white);
+      line-height: 1.2;
+    }
+    .client-header h1 em {
+      color: var(--gold);
+      font-style: italic;
+    }
+    .client-header p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+    }
+
+    /* Form Fields */
+    .sf-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      margin-bottom: 1rem;
+    }
+    .sf-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .sf-input {
+      width: 100%;
+      background: #1a1a1a;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      color: var(--white);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.92rem;
+      padding: 0.78rem 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    .sf-input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(201,168,76,0.12);
+    }
+    .sf-input::placeholder { color: rgba(160,160,160,0.45); }
+
+    /* Password eye */
+    .sf-password-wrap { position: relative; }
+    .sf-password-wrap .sf-input { padding-right: 2.8rem; }
+    .sf-eye {
+      position: absolute;
+      right: 0.8rem; top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0.2rem;
+      transition: color 0.2s;
+    }
+    .sf-eye:hover { color: var(--gold); }
+
+    /* Action Buttons */
+    .btn-signin {
+      width: 100%;
+      padding: 0.88rem;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.25s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+    }
+    .btn-signin.primary {
+      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+      color: #1a1000;
+      margin-top: 0.4rem;
+    }
+    .btn-signin.primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(201,168,76,0.35);
+    }
+    .btn-signin.primary:disabled { opacity: 0.55; transform: none; cursor: not-allowed; }
+
+    .btn-signin.google {
+      background: #1b1b1b;
+      color: #f0f0f0;
+      border: 1px solid rgba(255,255,255,0.14);
+      margin-top: 0.5rem;
+    }
+    .btn-signin.google:hover {
+      background: #252525;
+      border-color: var(--gold);
+      color: var(--white);
+      transform: translateY(-1px);
+    }
+    .btn-signin.google:disabled { opacity: 0.55; transform: none; cursor: not-allowed; }
+
+    .google-g {
+      width: 18px; height: 18px;
+      flex-shrink: 0;
+    }
+
+    /* Switch between Sign In / Sign Up */
+    .switch-auth-mode {
+      text-align: center;
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .switch-auth-mode button {
+      background: none;
+      border: none;
+      color: var(--gold);
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: underline;
+      margin-left: 0.3rem;
+      font-family: 'Inter', sans-serif;
+    }
+    .switch-auth-mode button:hover {
+      color: var(--gold-light);
+    }
+
+    /* Divider to Admin */
+    .admin-divider {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin: 1.8rem 0 1.2rem;
+      color: rgba(201,168,76,0.6);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+    }
+    .admin-divider::before,
+    .admin-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(201,168,76,0.3), transparent);
+    }
+
+    /* Separate Admin Box Directly Below Client */
+    .admin-login-box {
+      background: rgba(201,168,76,0.04);
+      border: 1px solid rgba(201,168,76,0.22);
+      border-radius: 14px;
+      padding: 1.3rem;
+      text-align: center;
+    }
+    .admin-login-box-head {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 0.3rem;
+    }
+    .admin-login-box-head strong {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      color: var(--gold);
+    }
+    .admin-login-box p {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      margin-bottom: 0.8rem;
+    }
+
+    /* Status Message Box */
+    .signin-msg {
+      display: none;
+      font-size: 0.82rem;
+      padding: 0.7rem 0.9rem;
+      border-radius: 8px;
+      margin-top: 0.8rem;
+      line-height: 1.4;
+      text-align: left;
+    }
+    .signin-msg.show { display: block; }
+    .signin-msg.ok  { background: rgba(110,231,160,0.1); color: #6ee7a0; border: 1px solid rgba(110,231,160,0.25); }
+    .signin-msg.err { background: rgba(255,107,107,0.1); color: #ff8080; border: 1px solid rgba(255,107,107,0.25); }
+
+    /* Back link */
+    .signin-back {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: color 0.2s;
+    }
+    .signin-back:hover { color: var(--gold); }
+
+    /* Spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .sf-spinner {
+      width: 16px; height: 16px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      flex-shrink: 0;
+    }
+  </style>
 </head>
 <body class="signin-page">
-  <main class="signin-shell">
+
+  <div class="signin-wrap">
+
+    <!-- Brand Logo -->
     <a class="signin-logo" href="index.html">
       <img src="images/ars_logo.jpg" alt="ARS Gallery Logo" />
-      <span><strong>ARS</strong><small>Gallery</small></span>
+      <div class="signin-logo-text">
+        <strong>ARS Gallery</strong>
+        <small>Photography Studio</small>
+      </div>
     </a>
 
-    <section class="auth-dialog signin-card" aria-labelledby="signinTitle">
-      <p class="tag">ARS Gallery</p>
-      <h1 id="signinTitle">Welcome <em>back</em></h1>
-      <p class="auth-demo-note">Sign in with your Gmail / Google account to continue or book a photography session.</p>
-      <button id="googleSignInButton" type="button" class="google-sign-in">
-        <span class="google-mark" aria-hidden="true">G</span>
-        Sign In with Google
-      </button>
+    <!-- Unified Sign-In Card -->
+    <div class="signin-card">
 
-      <p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>
-    </section>
+      <!-- ================= 1. CLIENT / USER LOGIN ================= -->
+      <div class="client-header">
+        <span class="tag">Client Portal</span>
+        <h1 id="clientTitle">Client <em>Sign In</em></h1>
+        <p id="clientSubtitle">Sign in or create an account to book your photography session.</p>
+      </div>
 
-    <a class="signin-home-link" href="index.html">← Back to ARS Gallery</a>
-  </main>
+      <form id="clientAuthForm" novalidate>
+        <!-- Name field (shown only in Sign Up mode) -->
+        <div class="sf-group" id="nameGroup" style="display:none;">
+          <label class="sf-label" for="sfName">Your Name</label>
+          <input class="sf-input" id="sfName" type="text" placeholder="e.g. Kasun Perera" autocomplete="name" />
+        </div>
+
+        <div class="sf-group">
+          <label class="sf-label" for="sfEmail">Email Address</label>
+          <input class="sf-input" id="sfEmail" type="email" placeholder="you@example.com" autocomplete="email" required />
+        </div>
+
+        <div class="sf-group">
+          <label class="sf-label" for="sfPassword">Password</label>
+          <div class="sf-password-wrap">
+            <input class="sf-input" id="sfPassword" type="password" placeholder="Enter your password" autocomplete="current-password" required />
+            <button type="button" class="sf-eye" id="sfEye" aria-label="Toggle password visibility">👁</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-signin primary" id="clientSubmitBtn">
+          Sign In
+        </button>
+      </form>
+
+      <!-- Toggle Sign In vs Sign Up for regular users -->
+      <div class="switch-auth-mode">
+        <span id="switchPrompt">Don't have an account?</span>
+        <button type="button" id="switchModeBtn">Create an account</button>
+      </div>
+
+      <!-- Client error/success message -->
+      <div class="signin-msg" id="clientMsg" role="status" aria-live="polite"></div>
+
+
+      <!-- ================= 2. SEPARATE ADMIN SECTION DIRECTLY UNDERNEATH ================= -->
+      <div class="admin-divider">Studio Admin</div>
+
+      <div class="admin-login-box">
+        <div class="admin-login-box-head">
+          <span>🛡️</span>
+          <strong>Admin Portal</strong>
+        </div>
+        <p>Restricted to authorized studio administrators. Sign in with your registered Google account.</p>
+
+        <button type="button" class="btn-signin google" id="adminGoogleBtn">
+          <svg class="google-g" viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.3 9 3.4L39.6 6C35.5 2.3 30 0 24 0 14.6 0 6.6 5.6 2.6 13.8l7.8 6C12.3 13.6 17.7 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8C43.6 37.4 46.5 31.4 46.5 24.5z"/>
+            <path fill="#FBBC05" d="M10.4 28.2A14.5 14.5 0 0 1 9.5 24c0-1.5.3-2.9.7-4.2l-7.8-6A23.9 23.9 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l7.8-6.6z"/>
+            <path fill="#34A853" d="M24 48c6 0 11-2 14.7-5.4l-7.5-5.8c-2 1.4-4.6 2.2-7.2 2.2-6.3 0-11.6-4.2-13.6-9.9l-7.8 6.1C6.6 42.4 14.6 48 24 48z"/>
+            <path fill="none" d="M0 0h48v48H0z"/>
+          </svg>
+          Sign In with Google (Admin)
+        </button>
+
+        <!-- Admin error/success message -->
+        <div class="signin-msg" id="adminMsg" role="status" aria-live="polite"></div>
+      </div>
+
+    </div><!-- /signin-card -->
+
+    <a class="signin-back" href="index.html">← Back to ARS Gallery</a>
+
+  </div><!-- /signin-wrap -->
+
   <script type="module" src="signin.js"></script>
 </body>
 </html>

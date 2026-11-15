@@ -9,7 +9,7 @@ const firebaseConfig = {
 };
 
 const firebaseVersion = '11.10.0';
-export const adminUid = 'OMGd04Xx0AXMw4m45ATzLR48BOE2';
+export const adminUid = 'ZVtWb2w79UdZy4FjiUY59PTNI6A3';
 
 let firebaseServices;
 
@@ -21,7 +21,7 @@ export function getFirebaseAuthErrorMessage(error) {
     return 'Firebase could not find this app’s Authentication configuration. Confirm the web app config in firebase-client.js belongs to ars-gallery-9ea0e, then check Firebase Console > Authentication and enable Google sign-in.';
   }
   if (error.code === 'auth/operation-not-allowed') {
-    return 'Google sign-in is disabled. Enable Google under Firebase Console > Authentication > Sign-in method.';
+    return 'This sign-in provider is disabled. Enable Email/Password or Google under Firebase Console > Authentication > Sign-in method.';
   }
   if (error.code === 'auth/unauthorized-domain') {
     return `Add "${location.hostname}" to Firebase Console > Authentication > Settings > Authorized domains.`;
@@ -65,4 +65,23 @@ export async function recordSignedInUser(user, services) {
     photoURL: user.photoURL || '',
     lastSeenAt: firestoreModule.serverTimestamp()
   }, { merge: true });
+}
+
+export async function checkIsAdmin(user, services) {
+  if (!user) return false;
+  if (user.uid === adminUid) return true;
+  try {
+    const { firestore, firestoreModule } = services || (await getFirebaseServices());
+    if (user.uid) {
+      const docSnap = await firestoreModule.getDoc(firestoreModule.doc(firestore, 'admins', user.uid));
+      if (docSnap.exists()) return true;
+    }
+    if (user.email) {
+      const emailDoc = await firestoreModule.getDoc(firestoreModule.doc(firestore, 'admins', user.email.toLowerCase().trim()));
+      if (emailDoc.exists()) return true;
+    }
+  } catch (err) {
+    console.warn('Could not verify admin status in Firestore:', err);
+  }
+  return false;
 }

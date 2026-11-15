@@ -867,6 +867,27 @@
           <div class="data-list" id="adminBookedClientsList">
             <div class="data-empty">No clients have booked yet.</div>
           </div>
+
+          <!-- Authorized Administrators (Access Control) -->
+          <div class="panel-card" style="margin-top:2.5rem;">
+            <div class="panel-card-head">
+              <div>
+                <span class="panel-card-tag">Access Control</span>
+                <h2>Authorized Administrators</h2>
+                <p>Grant or revoke Admin Dashboard access to specific Google email addresses</p>
+              </div>
+            </div>
+            <form id="addAdminForm" style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:flex-end;">
+              <div class="form-field" style="flex:1;min-width:240px;">
+                <label for="adminEmailInput">Google Email Address</label>
+                <input id="adminEmailInput" type="email" placeholder="e.g. pamud@gmail.com" required />
+              </div>
+              <button type="submit" class="btn-mini save">+ Grant Admin Access</button>
+            </form>
+            <div class="data-list" id="authorizedAdminList" style="margin-top:1.2rem;">
+              <div class="data-empty">Loading authorized admins…</div>
+            </div>
+          </div>
         </section>
 
         <!-- ======= GALLERY ======= -->
@@ -1288,6 +1309,9 @@
       // Clients who booked
       rebuildClientsList();
 
+      // Authorized Admins
+      rebuildAdminsList();
+
       // Seed panel
       checkSeedPanel();
     }
@@ -1584,6 +1608,61 @@
           <div class="client-count">${list2.length} booking${list2.length !== 1 ? 's' : ''}</div>
         </div>`;
       }).join('');
+    }
+
+    function rebuildAdminsList() {
+      const list = document.getElementById('authorizedAdminList');
+      if (!list) return;
+      const admins = window.firebaseAuthorizedAdmins || [];
+      const masterUid = 'ZVtWb2w79UdZy4FjiUY59PTNI6A3';
+
+      let itemsHtml = `
+        <div class="admin-item" style="display:flex;align-items:center;justify-content:space-between;background:#1a1a1a;border:1px solid rgba(201,168,76,0.3);border-radius:10px;padding:0.85rem 1.1rem;margin-bottom:0.5rem;">
+          <div>
+            <strong style="color:var(--gold);display:block;">Studio Owner (Master Admin)</strong>
+            <small style="display:block;color:var(--text-muted);font-size:0.75rem;">UID: ${escapeHTML(masterUid)}</small>
+          </div>
+          <span style="font-size:0.72rem;background:rgba(201,168,76,0.15);color:var(--gold);padding:0.25rem 0.65rem;border-radius:100px;font-weight:700;">Owner</span>
+        </div>
+      `;
+
+      if (admins.length) {
+        itemsHtml += admins.map((item) => {
+          const email = item.email || item.id;
+          const addedOn = item.addedAt ? new Date(item.addedAt).toLocaleDateString() : '';
+          return `
+            <div class="admin-item" style="display:flex;align-items:center;justify-content:space-between;background:#1a1a1a;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:0.85rem 1.1rem;margin-bottom:0.5rem;">
+              <div>
+                <strong style="color:var(--white);display:block;">${escapeHTML(email)}</strong>
+                ${addedOn ? `<small style="display:block;color:var(--text-muted);font-size:0.75rem;">Granted on: ${escapeHTML(addedOn)}</small>` : ''}
+              </div>
+              <button type="button" class="btn-mini danger" data-revoke-admin="${escapeHTML(item.id)}">Revoke Access</button>
+            </div>
+          `;
+        }).join('');
+      }
+
+      list.innerHTML = itemsHtml;
+
+      list.querySelectorAll('[data-revoke-admin]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const target = btn.dataset.revokeAdmin;
+          if (!confirm(`Are you sure you want to revoke admin access for "${target}"?`)) return;
+          runAdminAction(() => revokeAdminAccess(target), `Revoked admin access for ${target}.`);
+        });
+      });
+    }
+
+    const addAdminForm = document.getElementById('addAdminForm');
+    if (addAdminForm) {
+      addAdminForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const input = document.getElementById('adminEmailInput');
+        const email = (input?.value || '').trim();
+        if (!email) return;
+        const granted = await runAdminAction(() => grantAdminAccess(email), `Admin access granted to ${email}.`);
+        if (granted) addAdminForm.reset();
+      });
     }
 
     function checkSeedPanel() {

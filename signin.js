@@ -1,37 +1,119 @@
 import {
   adminUid,
+  checkIsAdmin,
   getFirebaseAuthErrorMessage,
   getFirebaseServices,
   recordSignedInUser
 } from './firebase-client.js';
 
-const button = document.getElementById('googleSignInButton');
-const message = document.getElementById('authMessage');
+// DOM Elements
+const authForm = document.getElementById('clientAuthForm');
+const nameGroup = document.getElementById('nameGroup');
+const nameInput = document.getElementById('sfName');
+const emailInput = document.getElementById('sfEmail');
+const passwordInput = document.getElementById('sfPassword');
+const eyeBtn = document.getElementById('sfEye');
+const submitBtn = document.getElementById('clientSubmitBtn');
+const switchModeBtn = document.getElementById('switchModeBtn');
+const switchPrompt = document.getElementById('switchPrompt');
+const clientTitle = document.getElementById('clientTitle');
+const clientSubtitle = document.getElementById('clientSubtitle');
+const clientMsg = document.getElementById('clientMsg');
+
+const adminGoogleBtn = document.getElementById('adminGoogleBtn');
+const adminMsg = document.getElementById('adminMsg');
+
 let services;
 let redirecting = false;
 let rejecting = false;
+let isSignUpMode = false; // false = Sign In, true = Sign Up
 
-function getRedirectTarget(user) {
-  const page = user.uid === adminUid ? 'admin.html' : 'index.html';
-  return new URL(page, location.href).href;
-}
-
-function showMessage(text, isError) {
-  message.textContent = text;
-  message.hidden = !text;
-  message.classList.toggle('auth-error', Boolean(isError));
-}
-
-function getSignInErrorMessage(error) {
-  if (error.code === 'auth/popup-blocked') {
-    return 'Your browser blocked the Google sign-in popup. Allow popups for this site and try again.';
+// Switch between Client Sign In and Client Sign Up modes
+function toggleAuthMode() {
+  isSignUpMode = !isSignUpMode;
+  nameGroup.style.display = isSignUpMode ? 'block' : 'none';
+  if (isSignUpMode) {
+    clientTitle.innerHTML = 'Create an <em>Account</em>';
+    clientSubtitle.textContent = 'Register with your email to start booking photography sessions.';
+    submitBtn.textContent = 'Create Account';
+    switchPrompt.textContent = 'Already have an account?';
+    switchModeBtn.textContent = 'Sign In';
+  } else {
+    clientTitle.innerHTML = 'Client <em>Sign In</em>';
+    clientSubtitle.textContent = 'Sign in or create an account to book your photography session.';
+    submitBtn.textContent = 'Sign In';
+    switchPrompt.textContent = "Don't have an account?";
+    switchModeBtn.textContent = 'Create an account';
   }
-  if (error.code === 'auth/popup-closed-by-user') {
-    return 'The Google sign-in window was closed before sign-in completed.';
-  }
-  return getFirebaseAuthErrorMessage(error);
+  showMsg(clientMsg, '', false);
 }
 
+if (switchModeBtn) {
+  switchModeBtn.addEventListener('click', toggleAuthMode);
+}
+
+// Password toggle eye
+if (eyeBtn && passwordInput) {
+  eyeBtn.addEventListener('click', () => {
+    const isText = passwordInput.type === 'text';
+    passwordInput.type = isText ? 'password' : 'text';
+    eyeBtn.textContent = isText ? '👁' : '🙈';
+    eyeBtn.setAttribute('aria-label', isText ? 'Show password' : 'Hide password');
+  });
+}
+
+// Show feedback message in a target element
+function showMsg(el, text, isError) {
+  if (!el) return;
+  el.textContent = text || '';
+  el.className = 'signin-msg' + (text ? ` show ${isError ? 'err' : 'ok'}` : '');
+}
+
+// Parse error codes for friendly messages
+function getFriendlyErrorMessage(error) {
+  if (!error) return 'Authentication failed. Please try again.';
+
+  switch (error.code) {
+    case 'auth/email-already-in-use':
+      return 'This email is already registered. Please sign in instead.';
+    case 'auth/weak-password':
+      return 'Password is too short. Please choose a password with at least 6 characters.';
+    case 'auth/invalid-credential':
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+      return 'Incorrect email or password. Please check your credentials and try again.';
+    case 'auth/user-disabled':
+      return 'This account has been disabled. Please contact ARS Gallery.';
+    case 'auth/too-many-requests':
+      return 'Access temporarily paused due to multiple failed attempts. Please wait a moment and try again.';
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.';
+    case 'auth/popup-blocked':
+      return 'Your browser blocked the Google sign-in window. Please enable popups for this site and retry.';
+    case 'auth/popup-closed-by-user':
+      return 'Google sign-in was canceled before completion.';
+    default:
+      return getFirebaseAuthErrorMessage(error);
+  }
+}
+
+// Determine redirect destination
+function getRedirectTarget(user, isAdmin) {
+  const params = new URLSearchParams(location.search);
+  const returnTo = params.get('returnTo');
+
+  if (isAdmin) {
+    return new URL(returnTo || 'admin.html', location.href).href;
+  }
+
+  if (returnTo && !returnTo.toLowerCase().includes('admin.html')) {
+    return new URL(returnTo, location.href).href;
+  }
+
+  return new URL('index.html', location.href).href;
+}
+
+// Save any appointment picked before signing in
 async function savePendingBooking(user) {
   const rawBooking = sessionStorage.getItem('ars_pending_booking');
   if (!rawBooking) return;
@@ -43,6 +125,7 @@ async function savePendingBooking(user) {
     sessionStorage.removeItem('ars_pending_booking');
     throw new Error('Your saved booking details could not be read. Please submit the booking again.');
   }
+
   if (!booking || typeof booking !== 'object') {
     sessionStorage.removeItem('ars_pending_booking');
     throw new Error('Your saved booking details are invalid. Please submit the booking again.');
@@ -51,7 +134,7 @@ async function savePendingBooking(user) {
   const { firestore, firestoreModule } = services;
   await firestoreModule.addDoc(firestoreModule.collection(firestore, 'bookings'), {
     uid: user.uid,
-    name: booking.name || user.displayName || '',
+    name: booking.name || user.displayName || user.email?.split('@')[0] || 'Client',
     email: booking.email || user.email || '',
     phone: booking.phone || '',
     service: booking.service || '',
@@ -61,81 +144,163 @@ async function savePendingBooking(user) {
     accountEmail: user.email || '',
     createdAt: firestoreModule.serverTimestamp()
   });
+
   sessionStorage.removeItem('ars_pending_booking');
 }
 
-async function rejectSignIn(text) {
+// Sign out unauthorized user
+async function rejectUnauthorized(targetMsgEl, reason) {
   rejecting = true;
   try {
-    await services.authModule.signOut(services.auth);
+    if (services && services.auth) {
+      await services.authModule.signOut(services.auth);
+    }
   } finally {
     rejecting = false;
-    button.disabled = false;
-    showMessage(text, true);
+    if (submitBtn) submitBtn.disabled = false;
+    if (adminGoogleBtn) adminGoogleBtn.disabled = false;
+    showMsg(targetMsgEl, reason, true);
   }
 }
 
-async function finishSignIn(user) {
+// Complete successful sign-in
+async function finishSignIn(user, isExplicitAdminAction = false) {
   if (redirecting || rejecting) return;
-  const hasGoogle = user.providerData.some((provider) => provider.providerId === 'google.com');
 
-  if (!hasGoogle) {
-    await rejectSignIn('Please sign in with your Google account.');
+  const isGoogle = user.providerData.some((p) => p.providerId === 'google.com');
+  const isAdmin = await checkIsAdmin(user, services);
+
+  // If clicked admin Google login but NOT authorized as an admin
+  if (isGoogle && !isAdmin) {
+    await rejectUnauthorized(
+      adminMsg,
+      `Access Denied: Your Google account (${user.email || user.uid}) is not authorized as an Admin. Only approved administrators can access the Admin Dashboard.`
+    );
     return;
   }
 
   redirecting = true;
-  button.disabled = true;
-  showMessage('', false);
-  recordSignedInUser(user, services).catch((error) => {
-    console.error('Could not update signed-in user activity:', error);
-  });
+  if (submitBtn) submitBtn.disabled = true;
+  if (adminGoogleBtn) adminGoogleBtn.disabled = true;
+
+  const targetMsg = isAdmin ? adminMsg : clientMsg;
+  showMsg(targetMsg, 'Signing in...', false);
+
   try {
+    // Record user activity in Firestore
+    await recordSignedInUser(user, services).catch((err) => {
+      console.warn('Could not record user activity:', err);
+    });
+
+    // Save pending booking if any
     await savePendingBooking(user);
   } catch (error) {
-    showMessage(`Signed in, but your booking could not be saved: ${error.message}`, true);
+    showMsg(targetMsg, `Signed in, but pending booking could not be saved: ${error.message}`, true);
     redirecting = false;
-    document.querySelectorAll('.signin-card button').forEach((control) => { control.disabled = false; });
+    if (submitBtn) submitBtn.disabled = false;
+    if (adminGoogleBtn) adminGoogleBtn.disabled = false;
     return;
   }
-  location.replace(getRedirectTarget(user));
+
+  showMsg(targetMsg, 'Success! Redirecting...', false);
+  setTimeout(() => {
+    location.replace(getRedirectTarget(user, isAdmin));
+  }, 400);
 }
 
+// Handle Client Form (Sign In OR Sign Up)
+if (authForm) {
+  authForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    const name = nameInput?.value.trim() || '';
+
+    if (!email || !password) {
+      showMsg(clientMsg, 'Please enter both your email and password.', true);
+      return;
+    }
+
+    if (isSignUpMode && password.length < 6) {
+      showMsg(clientMsg, 'Password must be at least 6 characters long.', true);
+      return;
+    }
+
+    submitBtn.disabled = true;
+    const originalText = submitBtn.textContent;
+    submitBtn.innerHTML = `<span class="sf-spinner"></span> ${isSignUpMode ? 'Creating account...' : 'Signing in...'}`;
+    showMsg(clientMsg, '', false);
+
+    try {
+      services = await getFirebaseServices();
+
+      if (isSignUpMode) {
+        // Register new user
+        const userCredential = await services.authModule.createUserWithEmailAndPassword(
+          services.auth,
+          email,
+          password
+        );
+        // Set display name if provided
+        if (name && userCredential.user) {
+          try {
+            await services.authModule.updateProfile(userCredential.user, { displayName: name });
+          } catch (profileErr) {
+            console.warn('Could not set displayName:', profileErr);
+          }
+        }
+      } else {
+        // Sign in existing user
+        await services.authModule.signInWithEmailAndPassword(services.auth, email, password);
+      }
+      // Auth state listener handles completion
+    } catch (error) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+      showMsg(clientMsg, getFriendlyErrorMessage(error), true);
+    }
+  });
+}
+
+// Handle Admin Google Sign-in
+if (adminGoogleBtn) {
+  adminGoogleBtn.addEventListener('click', async () => {
+    adminGoogleBtn.disabled = true;
+    const originalHtml = adminGoogleBtn.innerHTML;
+    adminGoogleBtn.innerHTML = '<span class="sf-spinner"></span> Connecting to Google...';
+    showMsg(adminMsg, '', false);
+
+    try {
+      services = await getFirebaseServices();
+      const provider = new services.authModule.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      await services.authModule.signInWithPopup(services.auth, provider);
+      // finishSignIn handles the admin authorization check
+    } catch (error) {
+      adminGoogleBtn.disabled = false;
+      adminGoogleBtn.innerHTML = originalHtml;
+      showMsg(adminMsg, getFriendlyErrorMessage(error), true);
+    }
+  });
+}
+
+// Initialize Firebase
 async function initializeSignIn() {
   try {
     services = await getFirebaseServices();
+
     services.authModule.onAuthStateChanged(services.auth, (user) => {
-      if (user) finishSignIn(user);
+      if (user) {
+        finishSignIn(user);
+      }
     }, (error) => {
-      showMessage(`Firebase sign-in error: ${getSignInErrorMessage(error)}`, true);
+      showMsg(clientMsg, `Firebase sign-in error: ${getFriendlyErrorMessage(error)}`, true);
     });
   } catch (error) {
-    showMessage(getSignInErrorMessage(error), true);
-    button.disabled = true;
+    showMsg(clientMsg, getFriendlyErrorMessage(error), true);
+    if (submitBtn) submitBtn.disabled = true;
+    if (adminGoogleBtn) adminGoogleBtn.disabled = true;
   }
 }
-
-function handleGoogleSignIn() {
-  runSignIn(() => getFirebaseServices()
-    .then((firebaseServices) => {
-      services = firebaseServices;
-      const provider = new services.authModule.GoogleAuthProvider();
-      return services.authModule.signInWithPopup(services.auth, provider);
-    }));
-}
-
-function runSignIn(signIn) {
-  button.disabled = true;
-  showMessage('', false);
-  Promise.resolve()
-    .then(signIn)
-    .catch((error) => {
-      button.disabled = false;
-      showMessage(getSignInErrorMessage(error), true);
-    });
-}
-
-button.addEventListener('click', handleGoogleSignIn);
-window.handleGoogleSignIn = handleGoogleSignIn;
 
 initializeSignIn();

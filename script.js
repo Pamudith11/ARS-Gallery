@@ -102,6 +102,7 @@ let firebaseAuthStateReady;
 let stopAdminListeners = [];
 let firebaseAdminBookings = null;
 let firebaseAdminUsers = null;
+let firebaseAuthorizedAdmins = null;
 
 // Gallery/package data now lives in Firestore (collections: categories, albums, packages).
 // null = not loaded yet.
@@ -490,7 +491,7 @@ function renderAdminDashboard(options = {}) {
             <strong>${escapeHTML(booking.name || 'Guest')}</strong>
             <p>${escapeHTML(booking.email || 'No email')}</p>
             ${booking.phone ? `<small>Phone: ${escapeHTML(booking.phone)}</small>` : ''}
-            ${booking.accountEmail ? `<small>Google account: ${escapeHTML(booking.accountEmail)}</small>` : ''}
+            ${booking.accountEmail ? `<small>Account: ${escapeHTML(booking.accountEmail)}</small>` : ''}
           </div>
           <div>
             <span>${escapeHTML(booking.service || 'Session')}</span>
@@ -567,7 +568,7 @@ function renderAdminDashboard(options = {}) {
           <div class="admin-user-item">
             ${user.photoURL ? `<img src="${escapeHTML(user.photoURL)}" alt="" referrerpolicy="no-referrer" />` : '<span class="admin-user-avatar" aria-hidden="true">G</span>'}
             <div class="admin-user-details">
-              <strong>${escapeHTML(user.displayName || 'Google user')}</strong>
+              <strong>${escapeHTML(user.displayName || user.email?.split('@')[0] || 'User')}</strong>
               <p>${escapeHTML(user.email || 'No email')}</p>
               <small>${escapeHTML(bookingSummary)}</small>
             </div>
@@ -651,7 +652,7 @@ async function runAdminAction(action, successMessage) {
 
 function getAdminErrorMessage(error) {
   if (error && error.code === 'permission-denied') {
-    return 'Permission denied. Publish the updated firestore.rules and sign in with the authorized admin Google account.';
+    return 'Permission denied. Publish the updated firestore.rules and sign in with the authorized admin account.';
   }
   return (error && error.message) || 'Something went wrong. Please try again.';
 }
@@ -662,8 +663,9 @@ async function requireAdminFirestore() {
   if (!firestore || !firestoreModule || !firebaseClient) {
     throw new Error('Firebase is not ready. Open the site through localhost or HTTPS and try again.');
   }
-  if (!firebaseCurrentUser || firebaseCurrentUser.uid !== firebaseClient.adminUid) {
-    throw new Error('Only the admin account can change site content.');
+  const isAuthorized = await firebaseClient.checkIsAdmin(firebaseCurrentUser, { firestore, firestoreModule });
+  if (!firebaseCurrentUser || !isAuthorized) {
+    throw new Error('Only authorized admins can change site content.');
   }
   return { db: firestore, fs: firestoreModule };
 }
@@ -742,6 +744,39 @@ async function deletePackage(packageId) {
 async function deleteBooking(bookingId) {
   const { db, fs } = await requireAdminFirestore();
   await fs.deleteDoc(fs.doc(db, 'bookings', bookingId));
+}
+
+async function grantAdminAccess(emailOrUid) {
+  const { db, fs } = await requireAdminFirestore();
+  const input = String(emailOrUid || '').trim();
+  if (!input) throw new Error('Please enter a valid Google email address or UID.');
+  
+  let targetUid = input;
+  let targetEmail = input.toLowerCase();
+
+  try {
+    const usersSnap = await fs.getDocs(fs.collection(db, 'users'));
+    const matched = usersSnap.docs.find(d => (d.data().email || '').toLowerCase() === targetEmail);
+    if (matched) {
+      targetUid = matched.id;
+    }
+  } catch (e) {
+    // ignore query failure, proceed with input
+  }
+
+  await fs.setDoc(fs.doc(db, 'admins', targetUid), {
+    uid: targetUid,
+    email: targetEmail,
+    addedAt: Date.now(),
+    addedBy: firebaseCurrentUser.email || firebaseCurrentUser.uid
+  });
+  return true;
+}
+
+async function revokeAdminAccess(adminId) {
+  const { db, fs } = await requireAdminFirestore();
+  await fs.deleteDoc(fs.doc(db, 'admins', adminId));
+  return true;
 }
 
 async function seedSampleData() {
@@ -923,7 +958,7 @@ if (cform) {
 
 async function persistBooking(data) {
   if (!firestore || !firebaseCurrentUser || !firestoreModule) {
-    throw new Error('Please sign in with Google and make sure Firebase Firestore is enabled before booking.');
+    throw new Error('Please sign in and make sure Firebase Firestore is enabled before booking.');
   }
 
   const booking = {
@@ -948,7 +983,7 @@ function updateAuthLinks() {
   const user = getSignedInUser();
   const rootPrefix = /\/pages\//i.test(window.location.pathname) ? '../' : '';
   const isAdminPage = document.body && document.body.getAttribute('data-admin-page') === 'true';
-  const isAdmin = Boolean(user && firebaseClient && user.uid === firebaseClient.adminUid);
+  const isAdmin = Boolean(user && (user.__isAdmin || (firebaseClient && user.uid === firebaseClient.adminUid)));
 
   // Signed out: show the plain "Sign In" link. Signed in: hide it (the profile icon replaces it).
   document.querySelectorAll('[data-sign-in-link]').forEach((link) => {
@@ -1108,7 +1143,7 @@ function setAdminMessage(message, isError, showSignIn = false) {
       const signInLink = document.createElement('a');
       signInLink.className = 'admin-signin-link';
       signInLink.href = 'signin.html?returnTo=admin.html';
-      signInLink.textContent = 'Sign in with Google';
+      signInLink.textContent = 'Sign in as Admin';
       status.append(document.createElement('br'), signInLink);
     }
     status.hidden = !message;
@@ -1129,6 +1164,7 @@ function stopAdminDataListeners() {
   stopAdminListeners = [];
   firebaseAdminBookings = null;
   firebaseAdminUsers = null;
+  firebaseAuthorizedAdmins = null;
 }
 
 function listenForAdminData() {
@@ -1156,6 +1192,12 @@ function listenForAdminData() {
   }, (error) => {
     setAdminPanelError('adminUserList', `Could not load sign-in activity: ${error.message}`);
   }));
+  stopAdminListeners.push(firestoreModule.onSnapshot(firestoreModule.collection(firestore, 'admins'), (snapshot) => {
+    firebaseAuthorizedAdmins = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+    renderAdminDashboard({ skipPackages: true });
+  }, (error) => {
+    console.warn('Could not load admins list:', error);
+  }));
 }
 
 async function handleFirebaseAuthState(user) {
@@ -1166,7 +1208,7 @@ async function handleFirebaseAuthState(user) {
   if (!user) {
     stopAdminDataListeners();
     setAdminMessage(isAdminPage
-      ? 'Sign in with the authorized admin Google account to open this dashboard.'
+      ? 'Sign in with the authorized admin account to open this dashboard.'
       : '', false, isAdminPage);
     return;
   }
@@ -1185,11 +1227,13 @@ async function handleFirebaseAuthState(user) {
     firebaseClient.recordSignedInUser(user, { firestore, firestoreModule }).catch(() => {});
   }, 120000);
 
-  const isAdmin = user.uid === firebaseClient.adminUid;
+  const isAdmin = await firebaseClient.checkIsAdmin(user, { firestore, firestoreModule });
+  if (user) user.__isAdmin = isAdmin;
+  updateAuthLinks();
   if (isAdminPage) {
     if (!isAdmin) {
       stopAdminDataListeners();
-      setAdminMessage('Access denied. Sign in with the authorized admin Google account to use the admin panel.', true);
+      setAdminMessage('Access denied. Sign in with an authorized admin account to use the admin panel.', true);
       return;
     }
     setAdminMessage('', false);
@@ -1337,10 +1381,18 @@ window.addPackage    = addPackage;
 window.updatePackage = updatePackage;
 window.deletePackage = deletePackage;
 window.deleteBooking = deleteBooking;
+window.grantAdminAccess = grantAdminAccess;
+window.revokeAdminAccess = revokeAdminAccess;
 window.seedSampleData = seedSampleData;
 window.runAdminAction = runAdminAction;
 window.MAX_ALBUM_PAYLOAD_CHARS = MAX_ALBUM_PAYLOAD_CHARS;
 window.renderAdminDashboard    = renderAdminDashboard;
+
+// Expose data references for admin dashboard
+Object.defineProperty(window, 'firebaseAuthorizedAdmins', {
+  get: () => typeof firebaseAuthorizedAdmins !== 'undefined' ? firebaseAuthorizedAdmins : null,
+  configurable: true
+});
 
 // Expose auth variables for admin shell
 Object.defineProperty(window, 'firebaseCurrentUser', {
