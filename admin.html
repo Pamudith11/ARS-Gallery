@@ -8,355 +8,1185 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ===== ADMIN SHELL ===== */
+    body[data-admin-page="true"] {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      background: #0a0a0a;
+    }
+
+    /* ===== ACCESS GATE ===== */
+    .admin-gate {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      padding: 4rem 2rem;
+      text-align: center;
+    }
+    .admin-gate .gate-icon { font-size: 3rem; }
+    .admin-gate h2 { font-family: 'Playfair Display', serif; font-size: 2rem; color: var(--white); }
+    .admin-gate p  { color: var(--text-muted); max-width: 420px; }
+    .admin-gate .btn-primary { margin-top: 0.5rem; }
+    .admin-gate.auth-error h2 { color: #ff6b6b; }
+
+    /* ===== DASHBOARD LAYOUT ===== */
+    .admin-app {
+      display: flex;
+      flex: 1;
+    }
+
+    /* ----- SIDEBAR ----- */
+    .admin-sidebar {
+      width: 260px;
+      min-height: calc(100vh - 70px);
+      background: #111111;
+      border-right: 1px solid rgba(201,168,76,0.12);
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1.5rem 1.5rem 1rem;
+      border-bottom: 1px solid rgba(201,168,76,0.1);
+    }
+    .sidebar-brand img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid rgba(201,168,76,0.3);
+    }
+    .sidebar-brand-text { line-height: 1.2; }
+    .sidebar-brand-text strong {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--gold);
+      font-family: 'Playfair Display', serif;
+    }
+    .sidebar-brand-text small { font-size: 0.72rem; color: var(--text-muted); }
+
+    .sidebar-nav { padding: 1.5rem 1rem; flex: 1; }
+    .sidebar-nav-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 0 0.75rem;
+      margin-bottom: 0.5rem;
+      margin-top: 1.2rem;
+    }
+    .sidebar-nav-label:first-child { margin-top: 0; }
+    .sidebar-nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 0.7rem 0.75rem;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 500;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+      margin-bottom: 2px;
+    }
+    .sidebar-nav-btn:hover { background: rgba(255,255,255,0.05); color: var(--white); }
+    .sidebar-nav-btn.active {
+      background: rgba(201,168,76,0.12);
+      color: var(--gold);
+      border-left: 3px solid var(--gold);
+    }
+    .sidebar-nav-btn .nav-icon { font-size: 1.1rem; width: 20px; text-align: center; flex-shrink: 0; }
+    .sidebar-nav-btn .nav-badge {
+      margin-left: auto;
+      background: var(--gold);
+      color: #1a1000;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.1rem 0.5rem;
+      border-radius: 100px;
+    }
+
+    .sidebar-user {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid rgba(201,168,76,0.1);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .sidebar-user img {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid rgba(201,168,76,0.3);
+    }
+    .sidebar-user-info { flex: 1; min-width: 0; }
+    .sidebar-user-info strong {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--white);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sidebar-user-info small { font-size: 0.7rem; color: var(--gold); }
+    .sidebar-signout {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0.25rem;
+      border-radius: 6px;
+      transition: color 0.2s;
+    }
+    .sidebar-signout:hover { color: #ff6b6b; }
+
+    /* ----- MAIN CONTENT ----- */
+    .admin-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow-x: hidden;
+    }
+
+    .admin-topbar {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 2rem;
+      background: #111111;
+      border-bottom: 1px solid rgba(201,168,76,0.1);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .admin-topbar-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.3rem;
+      cursor: pointer;
+      padding: 0.25rem;
+    }
+    .admin-topbar h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
+      color: var(--white);
+      flex: 1;
+    }
+    .admin-topbar h1 em { color: var(--gold); font-style: italic; }
+    .topbar-home-link {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      padding: 0.4rem 0.9rem;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 100px;
+      transition: all 0.2s;
+    }
+    .topbar-home-link:hover { color: var(--gold); border-color: rgba(201,168,76,0.3); }
+
+    .admin-content { padding: 2rem; flex: 1; }
+
+    /* ----- PANELS ----- */
+    .admin-panel-section { display: none; }
+    .admin-panel-section.active { display: block; }
+
+    /* ----- OVERVIEW STATS ----- */
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: #161616;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      padding: 1.4rem 1.2rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: rgba(201,168,76,0.25); }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px; height: 100%;
+      background: linear-gradient(to bottom, var(--gold), transparent);
+      border-radius: 2px 0 0 2px;
+    }
+    .stat-icon { font-size: 1.4rem; margin-bottom: 0.6rem; }
+    .stat-value {
+      display: block;
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--white);
+      line-height: 1;
+      font-family: 'Playfair Display', serif;
+    }
+    .stat-label { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.3rem; }
+
+    /* ----- BOOKING CALENDAR STRIP ----- */
+    .upcoming-strip {
+      background: #161616;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .upcoming-strip-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.2rem;
+    }
+    .upcoming-strip-head h3 { font-size: 1rem; color: var(--white); }
+    .upcoming-strip-head a { font-size: 0.8rem; color: var(--gold); }
+    .date-cards {
+      display: flex;
+      gap: 0.75rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+    }
+    .date-card {
+      flex-shrink: 0;
+      background: #1e1e1e;
+      border: 1px solid rgba(201,168,76,0.15);
+      border-radius: 12px;
+      padding: 1rem 1.2rem;
+      min-width: 160px;
+    }
+    .date-card-day {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--gold);
+      margin-bottom: 0.3rem;
+    }
+    .date-card-date { font-size: 1rem; font-weight: 600; color: var(--white); margin-bottom: 0.5rem; }
+    .date-card-sessions { font-size: 0.75rem; color: var(--text-muted); }
+    .date-card-sessions small {
+      display: block;
+      margin-top: 0.25rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding-top: 0.25rem;
+    }
+    .empty-strip { color: var(--text-muted); font-size: 0.88rem; padding: 1rem 0; }
+
+    /* ----- PANEL CARDS ----- */
+    .panel-card {
+      background: #161616;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .panel-card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      gap: 1rem;
+    }
+    .panel-card-head h2 { font-size: 1.1rem; color: var(--white); font-family: 'Playfair Display', serif; }
+    .panel-card-head p { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
+    .panel-card-tag {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 0.4rem;
+      display: block;
+    }
+
+    /* ----- FORMS ----- */
+    .admin-form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .form-field label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .form-field input,
+    .form-field select,
+    .form-field textarea {
+      background: #1e1e1e;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: var(--white);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      padding: 0.75rem 1rem;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+    .form-field input:focus,
+    .form-field select:focus,
+    .form-field textarea:focus {
+      outline: none;
+      border-color: var(--gold);
+    }
+    .form-field textarea { resize: vertical; min-height: 90px; }
+    .form-field select option { background: #1e1e1e; }
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .toggle-label input[type="checkbox"] { accent-color: var(--gold); width: 16px; height: 16px; }
+    .form-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+    .admin-status {
+      font-size: 0.82rem;
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      display: none;
+    }
+    .admin-status.show { display: block; }
+    .admin-status.ok { background: rgba(110,231,160,0.1); color: #6ee7a0; }
+    .admin-status.err { background: rgba(255,107,107,0.1); color: #ff6b6b; }
+
+    /* ----- DROP ZONE ----- */
+    .drop-zone {
+      border: 2px dashed rgba(201,168,76,0.3);
+      border-radius: 10px;
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: rgba(201,168,76,0.03);
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--gold);
+      background: rgba(201,168,76,0.07);
+    }
+    .drop-zone .drop-icon { font-size: 2rem; margin-bottom: 0.5rem; display: block; color: var(--gold); }
+    .drop-zone p { font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem; }
+    .album-preview-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    .album-preview-list img {
+      width: 70px;
+      height: 70px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid rgba(201,168,76,0.2);
+    }
+
+    /* ----- DATA LISTS ----- */
+    .data-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .data-empty { color: var(--text-muted); font-size: 0.88rem; text-align: center; padding: 2rem 0; }
+
+    /* Category tags */
+    .cat-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(201,168,76,0.1);
+      border: 1px solid rgba(201,168,76,0.2);
+      color: var(--gold);
+      font-size: 0.82rem;
+      font-weight: 500;
+      padding: 0.35rem 0.75rem;
+      border-radius: 100px;
+    }
+    .cat-tag button {
+      background: none;
+      border: none;
+      color: rgba(201,168,76,0.5);
+      cursor: pointer;
+      font-size: 0.9rem;
+      line-height: 1;
+      padding: 0;
+      transition: color 0.2s;
+    }
+    .cat-tag button:hover { color: #ff6b6b; }
+    .cat-tags-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+    /* Album items */
+    .album-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: #1a1a1a;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      transition: border-color 0.2s;
+    }
+    .album-item:hover { border-color: rgba(201,168,76,0.2); }
+    .album-item img {
+      width: 56px;
+      height: 56px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+    }
+    .album-item-info { flex: 1; min-width: 0; }
+    .album-item-info strong { display: block; font-size: 0.9rem; color: var(--white); }
+    .album-item-info span { font-size: 0.75rem; color: var(--gold); }
+    .album-item-info small { font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.1rem; }
+
+    /* Package items */
+    .package-item {
+      background: #1a1a1a;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 1.2rem;
+      transition: border-color 0.2s;
+    }
+    .package-item:hover { border-color: rgba(201,168,76,0.2); }
+    .package-item-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+    .package-item-head strong { font-size: 1rem; color: var(--white); }
+    .package-item-head .pkg-price { color: var(--gold); font-weight: 600; font-size: 0.95rem; }
+    .package-item .form-field { margin-bottom: 0.75rem; }
+    .package-item-actions { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.75rem; }
+
+    /* Booking items */
+    .booking-item {
+      background: #1a1a1a;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 1.2rem;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      align-items: start;
+      transition: border-color 0.2s;
+    }
+    .booking-item:hover { border-color: rgba(201,168,76,0.2); }
+    .booking-item-name { font-size: 1rem; font-weight: 600; color: var(--white); }
+    .booking-item-email { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.1rem; }
+    .booking-item-phone { font-size: 0.8rem; color: var(--text-muted); }
+    .booking-pill {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 100px;
+      margin-top: 0.5rem;
+    }
+    .booking-pill.upcoming { background: rgba(110,231,160,0.12); color: #6ee7a0; }
+    .booking-pill.past { background: rgba(160,160,160,0.1); color: var(--text-muted); }
+    .booking-item-meta { text-align: right; }
+    .booking-item-service { font-size: 0.82rem; font-weight: 600; color: var(--gold); }
+    .booking-item-date { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem; }
+    .booking-item-booked { font-size: 0.72rem; color: rgba(160,160,160,0.6); margin-top: 0.2rem; }
+
+    /* User items */
+    .user-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: #1a1a1a;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 1rem 1.2rem;
+      transition: border-color 0.2s;
+    }
+    .user-item:hover { border-color: rgba(201,168,76,0.2); }
+    .user-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid rgba(201,168,76,0.2);
+      flex-shrink: 0;
+    }
+    .user-avatar-fallback {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(201,168,76,0.1);
+      border: 2px solid rgba(201,168,76,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      color: var(--gold);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .user-info { flex: 1; min-width: 0; }
+    .user-info strong { display: block; font-size: 0.92rem; color: var(--white); }
+    .user-info span { font-size: 0.78rem; color: var(--text-muted); display: block; margin-top: 0.15rem; }
+    .user-info small { font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.25rem; }
+    .user-status { text-align: right; font-size: 0.75rem; color: var(--text-muted); flex-shrink: 0; }
+    .user-status .online { color: #6ee7a0; font-weight: 600; }
+    .user-status .last-seen { font-size: 0.7rem; display: block; margin-top: 0.1rem; }
+
+    /* ----- FILTER BAR ----- */
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      align-items: center;
+    }
+    .filter-bar input[type="search"],
+    .filter-bar input[type="date"],
+    .filter-bar select {
+      background: #1e1e1e;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: var(--white);
+      font-size: 0.84rem;
+      padding: 0.55rem 0.9rem;
+      font-family: 'Inter', sans-serif;
+    }
+    .filter-bar input:focus,
+    .filter-bar select:focus { outline: none; border-color: var(--gold); }
+    .filter-bar input[type="search"] { flex: 1; min-width: 180px; }
+
+    /* ----- MINI BUTTONS ----- */
+    .btn-mini {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.4rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-mini.primary { background: rgba(201,168,76,0.15); color: var(--gold); border: 1px solid rgba(201,168,76,0.3); }
+    .btn-mini.primary:hover { background: rgba(201,168,76,0.25); }
+    .btn-mini.danger { background: rgba(255,107,107,0.1); color: #ff6b6b; border: 1px solid rgba(255,107,107,0.2); }
+    .btn-mini.danger:hover { background: rgba(255,107,107,0.2); }
+    .btn-mini.save { background: linear-gradient(135deg,var(--gold),var(--gold-light)); color: #1a1000; }
+    .btn-mini.save:hover { opacity: 0.9; }
+
+    /* ----- PAGE SECTION HEADING ----- */
+    .section-heading { margin-bottom: 1.5rem; }
+    .section-heading h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      color: var(--white);
+    }
+    .section-heading p { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.3rem; }
+    .section-heading .tag { margin-bottom: 0.4rem; }
+
+    /* ----- MOBILE SIDEBAR OVERLAY ----- */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 150;
+    }
+    .sidebar-overlay.active { display: block; }
+
+    @media (max-width: 900px) {
+      .admin-sidebar {
+        position: fixed;
+        left: -270px;
+        top: 0;
+        height: 100vh;
+        z-index: 200;
+        transition: left 0.3s ease;
+        min-height: 100vh;
+      }
+      .admin-sidebar.open { left: 0; }
+      .admin-topbar-toggle { display: flex; }
+    }
+
+    @media (max-width: 600px) {
+      .admin-content { padding: 1rem; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+      .booking-item { grid-template-columns: 1fr; }
+      .admin-form-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ----- SEED PANEL ----- */
+    .seed-panel {
+      background: rgba(201,168,76,0.07);
+      border: 1px solid rgba(201,168,76,0.2);
+      border-radius: 12px;
+      padding: 1.2rem 1.5rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .seed-panel p { flex: 1; font-size: 0.85rem; color: var(--text-muted); min-width: 200px; }
+
+    /* Booked clients */
+    .client-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      background: #1a1a1a;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 1rem 1.2rem;
+    }
+    .client-sessions { flex: 1; }
+    .client-sessions strong { font-size: 0.92rem; color: var(--white); display: block; }
+    .client-sessions span { font-size: 0.78rem; color: var(--text-muted); display: block; margin-top: 0.1rem; }
+    .client-sessions small { font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.25rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.25rem; }
+    .client-count { font-size: 0.78rem; color: var(--gold); font-weight: 600; white-space: nowrap; }
+  </style>
 </head>
 <body data-admin-page="true">
-  <nav class="navbar" id="navbar">
-    <div class="nav-inner">
-      <a href="index.html" class="logo">
-        <img src="images/ars_logo.jpg" alt="ARS Gallery Logo" class="logo-img" />
-        <div class="logo-text">
-          <span class="logo-ars">ARS</span>
-          <span class="logo-gallery">Gallery</span>
-        </div>
-      </a>
-      <span class="nav-tag">Photography Studio</span>
-      <ul class="nav-links" id="nav-links">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="pages/about.html">About</a></li>
-        <li><a href="pages/services.html">Services</a></li>
-        <li><a href="pages/gallery.html">Gallery</a></li>
-        <li><a href="pages/testimonials.html">Packages</a></li>
-        <li><a href="pages/booking.html">Booking</a></li>
-      </ul>
-      <a href="pages/booking.html" class="btn-book">Book Now</a>
-      <button class="burger" id="burger" aria-label="Menu">
-        <span></span><span></span><span></span>
-      </button>
-    </div>
-    <div class="mobile-nav" id="mobile-nav">
-      <ul>
-        <li><a href="index.html" class="mob-link">Home</a></li>
-        <li><a href="pages/about.html" class="mob-link">About</a></li>
-        <li><a href="pages/services.html" class="mob-link">Services</a></li>
-        <li><a href="pages/gallery.html" class="mob-link">Gallery</a></li>
-        <li><a href="pages/testimonials.html" class="mob-link">Testimonials</a></li>
-        <li><a href="pages/booking.html" class="mob-link">Booking</a></li>
-      </ul>
-      <a href="pages/booking.html" class="btn-book mob-link">Book Now</a>
-    </div>
-  </nav>
 
-  <main>
-    <section class="page-hero page-hero-contact admin-hero">
-      <div class="page-hero-inner">
-        <p class="tag">ARS Gallery · Studio management</p>
-        <h1>Admin <em>Dashboard</em></h1>
-        <p>Manage your bookings, clients, gallery and photography packages in one place. Saved gallery and package changes appear on the public site automatically.</p>
-      </div>
-    </section>
+  <!-- ACCESS GATE (shown when not signed in / not admin) -->
+  <div class="admin-gate" id="adminGate">
+    <div class="gate-icon">🔐</div>
+    <h2>Admin Dashboard</h2>
+    <p id="adminGateMsg">Checking your sign-in status…</p>
+    <a class="btn-primary" href="signin.html?returnTo=admin.html" id="adminGateSignIn" style="display:none;">Sign in with Google</a>
+  </div>
 
-    <section class="page-section contact">
-      <div class="container">
-        <div id="adminAccessMessage" class="admin-access-message" role="status">
-          Checking Firebase sign-in...
-          <br />
-          <a class="admin-signin-link" href="signin.html?returnTo=admin.html">Sign in with Google</a>
+  <!-- DASHBOARD (hidden until admin verified) -->
+  <div class="admin-app" id="adminApp" hidden>
+
+    <!-- Mobile sidebar overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar" id="adminSidebar">
+      <div class="sidebar-brand">
+        <img src="images/ars_logo.jpg" alt="ARS Gallery" />
+        <div class="sidebar-brand-text">
+          <strong>ARS Gallery</strong>
+          <small>Admin Panel</small>
         </div>
       </div>
-      <div class="container admin-grid" id="adminDashboard" hidden>
-        <div class="admin-overview full-width">
-          <div class="admin-overview-heading">
-            <div>
-              <p class="tag">Overview</p>
-              <h2>Your studio at a glance</h2>
+
+      <nav class="sidebar-nav">
+        <div class="sidebar-nav-label">Overview</div>
+        <button class="sidebar-nav-btn active" data-panel="overview">
+          <span class="nav-icon">📊</span> Dashboard
+        </button>
+
+        <div class="sidebar-nav-label">Manage</div>
+        <button class="sidebar-nav-btn" data-panel="bookings">
+          <span class="nav-icon">📅</span> Bookings
+          <span class="nav-badge" id="sidebarBookingBadge" style="display:none"></span>
+        </button>
+        <button class="sidebar-nav-btn" data-panel="users">
+          <span class="nav-icon">👥</span> Users
+          <span class="nav-badge" id="sidebarUserBadge" style="display:none"></span>
+        </button>
+        <button class="sidebar-nav-btn" data-panel="gallery">
+          <span class="nav-icon">🖼️</span> Gallery
+        </button>
+        <button class="sidebar-nav-btn" data-panel="packages">
+          <span class="nav-icon">📦</span> Packages
+        </button>
+
+        <div class="sidebar-nav-label">Site</div>
+        <a href="index.html" class="sidebar-nav-btn" style="text-decoration:none; display:flex;">
+          <span class="nav-icon">🌐</span> View Website
+        </a>
+      </nav>
+
+      <div class="sidebar-user" id="sidebarUser">
+        <div class="user-avatar-fallback" style="width:36px;height:36px;font-size:0.85rem;" id="sidebarAvatarFallback">A</div>
+        <div class="sidebar-user-info">
+          <strong id="sidebarUserName">Admin</strong>
+          <small>Administrator</small>
+        </div>
+        <button class="sidebar-signout" id="sidebarSignOut" title="Sign out">⇥</button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="admin-main">
+      <div class="admin-topbar">
+        <button class="admin-topbar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+        <h1 id="topbarTitle">Dashboard <em>Overview</em></h1>
+        <a href="index.html" class="topbar-home-link">↗ View site</a>
+      </div>
+
+      <div class="admin-content">
+
+        <!-- ACTION STATUS -->
+        <p class="admin-status" id="adminGlobalStatus" role="status" aria-live="polite"></p>
+
+        <!-- SEED PANEL -->
+        <div class="seed-panel" id="seedPanel" hidden>
+          <p>Your gallery database is empty. Load sample content to get started quickly.</p>
+          <button type="button" class="btn-mini save" id="seedSampleData">Load Sample Data</button>
+        </div>
+
+        <!-- ======= OVERVIEW ======= -->
+        <section class="admin-panel-section active" id="panel-overview">
+          <div class="section-heading">
+            <span class="tag">Overview</span>
+            <h2>Your Studio at a Glance</h2>
+          </div>
+
+          <div class="stat-row">
+            <div class="stat-card">
+              <div class="stat-icon">📅</div>
+              <span class="stat-value" id="statBookings">—</span>
+              <div class="stat-label">Total Bookings</div>
             </div>
-            <nav class="admin-shortcuts" aria-label="Dashboard sections">
-              <a href="#adminBookings">Bookings</a>
-              <a href="#adminGallery">Gallery</a>
-              <a href="#adminPackages">Packages</a>
-              <a href="#adminUsers">Clients</a>
-            </nav>
-          </div>
-          <div class="admin-stat-grid">
-            <article class="admin-stat-card"><span>Total bookings</span><strong id="adminBookingCount">—</strong><small>All requests received</small></article>
-            <article class="admin-stat-card"><span>Upcoming sessions</span><strong id="adminUpcomingCount">—</strong><small>Sessions still to come</small></article>
-            <article class="admin-stat-card"><span>Signed-in users</span><strong id="adminUserCount">—</strong><small>Google accounts recorded</small></article>
-            <article class="admin-stat-card"><span>Gallery albums</span><strong id="adminAlbumCount">—</strong><small>Published in your gallery</small></article>
-            <article class="admin-stat-card"><span>Packages</span><strong id="adminPackageCount">—</strong><small>Available to your clients</small></article>
-          </div>
-          <div class="admin-upcoming">
-            <div class="admin-section-heading">
-              <div><p class="tag">Schedule</p><h3>Upcoming booking dates</h3></div>
-              <a href="#adminBookings">View all bookings</a>
+            <div class="stat-card">
+              <div class="stat-icon">⏳</div>
+              <span class="stat-value" id="statUpcoming">—</span>
+              <div class="stat-label">Upcoming Sessions</div>
             </div>
-            <div id="adminBookingCalendar" class="admin-booking-calendar" aria-live="polite"></div>
+            <div class="stat-card">
+              <div class="stat-icon">👥</div>
+              <span class="stat-value" id="statUsers">—</span>
+              <div class="stat-label">Signed-in Users</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🖼️</div>
+              <span class="stat-value" id="statAlbums">—</span>
+              <div class="stat-label">Gallery Albums</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">📦</div>
+              <span class="stat-value" id="statPackages">—</span>
+              <div class="stat-label">Packages</div>
+            </div>
           </div>
-        </div>
 
-        <div class="admin-panel full-width" id="adminSetupPanel" hidden>
-          <h3>Setup</h3>
-          <p id="adminSetupMessage" class="auth-message" role="status"></p>
-          <button type="button" id="seedSampleData" class="btn-primary" hidden>Load sample data</button>
-        </div>
-        <p id="adminActionMessage" class="auth-message admin-panel full-width" role="status" aria-live="polite" hidden></p>
-
-        <div class="admin-panel" id="adminGallery">
-          <div class="admin-panel-heading">
-            <div><p class="tag">Gallery</p><h3>Categories</h3></div>
-            <span class="admin-panel-hint">Organize your albums</span>
+          <!-- Upcoming booking dates strip -->
+          <div class="upcoming-strip">
+            <div class="upcoming-strip-head">
+              <h3>📆 Upcoming Booking Dates</h3>
+              <a href="#" data-panel-link="bookings">View all →</a>
+            </div>
+            <div class="date-cards" id="upcomingDateCards">
+              <div class="empty-strip">No upcoming booking dates yet.</div>
+            </div>
           </div>
-          <form id="categoryForm" class="admin-form">
-            <input id="categoryName" type="text" placeholder="Add category e.g. Graduation" required />
-            <button type="submit" class="btn-primary">Add Category</button>
-          </form>
 
-          <div class="admin-list" id="adminCategoryList"></div>
-        </div>
-
-        <div class="admin-panel">
-          <div class="admin-panel-heading">
-            <div><p class="tag">Gallery</p><h3>Add an album</h3></div>
-            <span class="admin-panel-hint">Upload up to 10 photos</span>
-          </div>
-          <form id="albumForm" class="admin-form">
-            <select id="albumCategory"></select>
-            <input id="albumTitle" type="text" placeholder="Album title" required />
-            <input id="albumDescription" type="text" placeholder="Short description" />
-
-            <div class="drop-zone" id="dropZone" tabindex="0" aria-label="Upload album images">
-              <input id="albumImages" type="file" accept="image/*" multiple hidden />
-              <div class="drop-zone-inner">
-                <span class="drop-icon">⇪</span>
-                <strong>Drag &amp; drop images here</strong>
-                <p>or click to choose files</p>
+          <!-- Quick actions -->
+          <div class="panel-card">
+            <div class="panel-card-head">
+              <div>
+                <span class="panel-card-tag">Quick Actions</span>
+                <h2>Jump to a section</h2>
               </div>
             </div>
-
-            <div id="albumPreviewList" class="album-preview-list"></div>
-            <p id="albumUploadMessage" class="auth-message" role="status" aria-live="polite"></p>
-
-            <input id="albumImage" type="text" placeholder="Or paste one image path (optional)" />
-            <button type="submit" class="btn-primary">Add Album</button>
-          </form>
-
-          <div class="admin-list" id="adminAlbumList"></div>
-        </div>
-
-        <div class="admin-panel full-width" id="adminPackages">
-          <div class="admin-panel-heading">
-            <div><p class="tag">Services</p><h3>Photography packages</h3></div>
-            <span class="admin-panel-hint">Add, edit or remove your offers</span>
+            <div style="display:flex;flex-wrap:wrap;gap:0.75rem;">
+              <button class="btn-mini primary" data-panel-link="bookings">📅 Manage Bookings</button>
+              <button class="btn-mini primary" data-panel-link="users">👥 View Users</button>
+              <button class="btn-mini primary" data-panel-link="gallery">🖼️ Manage Gallery</button>
+              <button class="btn-mini primary" data-panel-link="packages">📦 Manage Packages</button>
+            </div>
           </div>
-          <form id="packageForm" class="admin-form">
-            <input id="packageTitle" type="text" placeholder="Package name" required />
-            <input id="packagePrice" type="text" placeholder="Price (e.g. LKR 45,000)" required />
-            <textarea id="packageFeatures" rows="4" placeholder="Package features (one per line)" required></textarea>
-            <label class="admin-featured-toggle">
-              <input id="packageFeatured" type="checkbox" />
-              Highlight this package
-            </label>
-            <button type="submit" class="btn-primary">Add Package</button>
-          </form>
-          <div class="admin-list" id="adminPackageList"></div>
-        </div>
+        </section>
 
-        <div class="admin-panel full-width" id="adminBookings">
-          <div class="admin-panel-heading">
-            <div><p class="tag">Schedule</p><h3>All bookings</h3></div>
-            <span class="admin-panel-hint">Review client details and session dates</span>
+        <!-- ======= BOOKINGS ======= -->
+        <section class="admin-panel-section" id="panel-bookings">
+          <div class="section-heading">
+            <span class="tag">Schedule</span>
+            <h2>All Bookings</h2>
+            <p>Review client details and session dates</p>
           </div>
-          <div class="admin-filter-bar">
-            <label>Search bookings<input id="bookingSearch" type="search" placeholder="Name, email, service..." /></label>
-            <label>From<input id="bookingDateFrom" type="date" /></label>
-            <label>To<input id="bookingDateTo" type="date" /></label>
-            <label>Dates<select id="bookingDateFilter"><option value="all">All dates</option><option value="upcoming">Upcoming</option><option value="past">Past</option></select></label>
-          </div>
-          <div class="admin-list" id="adminBookingList"></div>
-        </div>
 
-        <div class="admin-panel full-width">
-          <div class="admin-panel-heading">
-            <div><p class="tag">Clients</p><h3>Clients who booked</h3></div>
+          <div class="filter-bar">
+            <input type="search" id="bookingSearch" placeholder="🔍 Search name, email, service…" />
+            <input type="date" id="bookingDateFrom" title="From date" />
+            <input type="date" id="bookingDateTo" title="To date" />
+            <select id="bookingDateFilter">
+              <option value="all">All dates</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="past">Past</option>
+            </select>
           </div>
-          <div class="admin-list" id="adminBookedClientsList"></div>
-        </div>
 
-        <div class="admin-panel full-width" id="adminUsers">
-          <div class="admin-panel-heading">
-            <div><p class="tag">Accounts</p><h3>Signed-in users</h3></div>
-            <span class="admin-panel-hint">Recent Google sign-ins and activity</span>
+          <div class="data-list" id="adminBookingList">
+            <div class="data-empty">Loading bookings…</div>
           </div>
-          <div class="admin-list" id="adminUserList"></div>
-        </div>
-      </div>
-    </section>
-  </main>
+        </section>
 
-  <footer class="footer">
-    <div class="footer-inner">
-      <div class="footer-brand">
-        <div class="foot-logo">
-          <img src="images/ars_logo.jpg" alt="ARS Gallery" />
-          <div>
-            <span class="logo-ars">ARS</span>
-            <span class="logo-gallery">Gallery</span>
+        <!-- ======= USERS ======= -->
+        <section class="admin-panel-section" id="panel-users">
+          <div class="section-heading">
+            <span class="tag">Accounts</span>
+            <h2>Signed-in Users</h2>
+            <p>Google accounts recorded &amp; recent activity</p>
           </div>
-        </div>
-        <p>“Capturamos tu mejor momento” — We capture your best moment, every time.</p>
-      </div>
-      <div class="foot-nav">
-        <div class="fn-col">
-          <h5>Navigation</h5>
-          <ul>
-            <li><a href="index.html">Home</a></li>
-            <li><a href="pages/about.html">About</a></li>
-            <li><a href="pages/services.html">Services</a></li>
-          </ul>
-        </div>
-        <div class="fn-col">
-          <h5>Connect</h5>
-          <ul>
-            <li><a href="pages/booking.html">Book a Session</a></li>
-            <li><a href="pages/gallery.html">Gallery</a></li>
-            <li><a href="pages/contact.html">Contact</a></li>
-          </ul>
-        </div>
-      </div>
-    </div>
-    <div class="foot-bottom">
-      <p>© 2026 ARS Gallery. All rights reserved.</p>
-    </div>
-  </footer>
+
+          <div class="data-list" id="adminUserList">
+            <div class="data-empty">Loading users…</div>
+          </div>
+
+          <!-- Clients who booked -->
+          <div class="section-heading" style="margin-top:2rem;">
+            <span class="tag">Clients</span>
+            <h2>Clients Who Booked</h2>
+          </div>
+          <div class="data-list" id="adminBookedClientsList">
+            <div class="data-empty">No clients have booked yet.</div>
+          </div>
+        </section>
+
+        <!-- ======= GALLERY ======= -->
+        <section class="admin-panel-section" id="panel-gallery">
+          <div class="section-heading">
+            <span class="tag">Gallery</span>
+            <h2>Gallery Management</h2>
+            <p>Manage categories and albums — changes appear on the public site automatically</p>
+          </div>
+
+          <!-- Add Category -->
+          <div class="panel-card">
+            <div class="panel-card-head">
+              <div>
+                <span class="panel-card-tag">Step 1</span>
+                <h2>Gallery Categories</h2>
+                <p>Create categories to organise your albums</p>
+              </div>
+            </div>
+            <form id="categoryForm" style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:flex-end;">
+              <div class="form-field" style="flex:1;min-width:200px;">
+                <label for="categoryName">Category name</label>
+                <input id="categoryName" type="text" placeholder="e.g. Graduation, Couples…" required />
+              </div>
+              <button type="submit" class="btn-mini save">+ Add Category</button>
+            </form>
+            <div class="cat-tags-row" id="adminCategoryList" style="margin-top:1rem;"></div>
+          </div>
+
+          <!-- Add Album -->
+          <div class="panel-card">
+            <div class="panel-card-head">
+              <div>
+                <span class="panel-card-tag">Step 2</span>
+                <h2>Add an Album</h2>
+                <p>Upload up to 10 photos per album</p>
+              </div>
+            </div>
+            <form id="albumForm">
+              <div class="admin-form-grid" style="margin-bottom:1rem;">
+                <div class="form-field">
+                  <label for="albumCategory">Category</label>
+                  <select id="albumCategory"></select>
+                </div>
+                <div class="form-field">
+                  <label for="albumTitle">Album title</label>
+                  <input id="albumTitle" type="text" placeholder="e.g. Wedding Day Highlights" required />
+                </div>
+                <div class="form-field">
+                  <label for="albumDescription">Short description</label>
+                  <input id="albumDescription" type="text" placeholder="e.g. Timeless Love Stories" />
+                </div>
+                <div class="form-field">
+                  <label for="albumImage">Or paste one image URL (optional)</label>
+                  <input id="albumImage" type="text" placeholder="https://… or images/photo.jpg" />
+                </div>
+              </div>
+
+              <div class="drop-zone" id="dropZone" tabindex="0" aria-label="Upload album images">
+                <input id="albumImages" type="file" accept="image/*" multiple hidden />
+                <span class="drop-icon">⇪</span>
+                <strong style="color:var(--white);">Drag &amp; drop images here</strong>
+                <p>or click to choose files · max 10 images, 20 MB each</p>
+              </div>
+              <div id="albumPreviewList" class="album-preview-list"></div>
+              <p class="admin-status" id="albumUploadMessage" style="margin-top:0.75rem;"></p>
+
+              <div class="form-actions" style="margin-top:1rem;">
+                <button type="submit" class="btn-mini save">Add Album</button>
+              </div>
+            </form>
+
+            <!-- Album list -->
+            <div style="margin-top:1.5rem;">
+              <strong style="font-size:0.82rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">Existing Albums</strong>
+              <div class="data-list" id="adminAlbumList" style="margin-top:0.75rem;"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ======= PACKAGES ======= -->
+        <section class="admin-panel-section" id="panel-packages">
+          <div class="section-heading">
+            <span class="tag">Services</span>
+            <h2>Photography Packages</h2>
+            <p>Add, edit or remove your photography packages</p>
+          </div>
+
+          <!-- Add Package -->
+          <div class="panel-card">
+            <div class="panel-card-head">
+              <div>
+                <span class="panel-card-tag">New Package</span>
+                <h2>Add a Package</h2>
+              </div>
+            </div>
+            <form id="packageForm">
+              <div class="admin-form-grid" style="margin-bottom:1rem;">
+                <div class="form-field">
+                  <label for="packageTitle">Package name</label>
+                  <input id="packageTitle" type="text" placeholder="e.g. Wedding Story" required />
+                </div>
+                <div class="form-field">
+                  <label for="packagePrice">Price</label>
+                  <input id="packagePrice" type="text" placeholder="e.g. LKR 85,000" required />
+                </div>
+              </div>
+              <div class="form-field" style="margin-bottom:1rem;">
+                <label for="packageFeatures">Features (one per line)</label>
+                <textarea id="packageFeatures" rows="4" placeholder="8 hours coverage&#10;2 photographers&#10;Online gallery&#10;Printed album" required></textarea>
+              </div>
+              <div class="form-actions">
+                <label class="toggle-label">
+                  <input id="packageFeatured" type="checkbox" />
+                  Highlight this package
+                </label>
+                <button type="submit" class="btn-mini save">+ Add Package</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Package list -->
+          <div class="data-list" id="adminPackageList"></div>
+        </section>
+
+      </div><!-- /admin-content -->
+    </div><!-- /admin-main -->
+  </div><!-- /admin-app -->
+
+  <!-- Hidden compatibility elements required by script.js internals -->
+  <div id="adminAccessMessage" hidden aria-hidden="true"></div>
+  <div id="adminDashboard" hidden aria-hidden="true">
+    <!-- Stat counters: written by script.js, read by our updateNewDashboardUI() -->
+    <strong id="adminBookingCount"></strong>
+    <strong id="adminUpcomingCount"></strong>
+    <strong id="adminUserCount"></strong>
+    <strong id="adminAlbumCount"></strong>
+    <strong id="adminPackageCount"></strong>
+    <div id="adminBookingCalendar" style="display:none"></div>
+    <p id="adminActionMessage" style="display:none"></p>
+    <div id="adminSetupPanel" hidden></div>
+    <p id="adminSetupMessage" style="display:none"></p>
+    <button id="_seedSampleDataCompat" hidden></button>
+  </div>
 
   <script src="script.js"></script>
   <script>
-    const categoryForm = document.getElementById('categoryForm');
-    const categoryName = document.getElementById('categoryName');
-    const albumForm = document.getElementById('albumForm');
-    const albumCategory = document.getElementById('albumCategory');
-    const albumTitle = document.getElementById('albumTitle');
-    const albumDescription = document.getElementById('albumDescription');
-    const albumImage = document.getElementById('albumImage');
-    const albumImages = document.getElementById('albumImages');
-    const dropZone = document.getElementById('dropZone');
-    const albumPreviewList = document.getElementById('albumPreviewList');
-    const albumUploadMessage = document.getElementById('albumUploadMessage');
-    const packageForm = document.getElementById('packageForm');
-    let uploadedAlbumImages = [];
+    /* =====================================================
+       ADMIN DASHBOARD — inline controller
+       ===================================================== */
 
-    function setUploadMessage(text, isError) {
-      albumUploadMessage.textContent = text;
-      albumUploadMessage.classList.toggle('auth-error', Boolean(isError));
+    // ---- Panel navigation ----
+    const panelBtns = document.querySelectorAll('[data-panel]');
+    const panels    = document.querySelectorAll('.admin-panel-section');
+
+    function activatePanel(name) {
+      panels.forEach(p => p.classList.toggle('active', p.id === `panel-${name}`));
+      panelBtns.forEach(b => b.classList.toggle('active', b.dataset.panel === name));
+      const titles = {
+        overview : 'Dashboard <em>Overview</em>',
+        bookings : 'All <em>Bookings</em>',
+        users    : 'Signed-in <em>Users</em>',
+        gallery  : 'Gallery <em>Management</em>',
+        packages : 'Photography <em>Packages</em>'
+      };
+      document.getElementById('topbarTitle').innerHTML = titles[name] || name;
+      closeSidebar();
     }
 
-    if (categoryForm) {
-      categoryForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const added = await runAdminAction(() => addGalleryCategory(categoryName.value), 'Category added.');
-        if (added) categoryForm.reset();
+    panelBtns.forEach(btn => {
+      btn.addEventListener('click', () => activatePanel(btn.dataset.panel));
+    });
+
+    document.querySelectorAll('[data-panel-link]').forEach(el => {
+      el.addEventListener('click', e => {
+        e.preventDefault();
+        activatePanel(el.dataset.panelLink);
       });
+    });
+
+    // ---- Mobile sidebar ----
+    const sidebar        = document.getElementById('adminSidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const sidebarToggle  = document.getElementById('sidebarToggle');
+
+    sidebarToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+      sidebarOverlay.classList.toggle('active');
+    });
+    sidebarOverlay.addEventListener('click', closeSidebar);
+
+    function closeSidebar() {
+      sidebar.classList.remove('open');
+      sidebarOverlay.classList.remove('active');
     }
 
-    if (albumForm) {
-      albumForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const albumData = {
-          category: albumCategory.value,
-          title: albumTitle.value,
-          description: albumDescription.value,
-          image: albumImage.value.trim(),
-          images: uploadedAlbumImages
-        };
-        if (!albumData.category) {
-          setUploadMessage('Add a category first, then choose it for this album.', true);
-          return;
-        }
-        if (!albumData.images.length && !albumData.image) {
-          setUploadMessage('Choose an image file or provide an image path before adding this album.', true);
-          return;
-        }
-        setUploadMessage('Saving album...', false);
-        const added = await runAdminAction(() => addGalleryAlbum(albumData), 'Album added.');
-        if (added) {
-          albumForm.reset();
-          uploadedAlbumImages = [];
-          albumPreviewList.innerHTML = '';
-          setUploadMessage('', false);
-        } else {
-          setUploadMessage('', false);
-        }
-      });
+    // ---- Sign-out button ----
+    document.getElementById('sidebarSignOut').addEventListener('click', () => {
+      if (typeof firebaseAuthModule !== 'undefined' && firebaseAuth) {
+        firebaseAuthModule.signOut(firebaseAuth).catch(err => alert(err.message));
+      }
+    });
+
+    // ---- Admin gate helpers ----
+    function showGate(msg, isError, showSignIn) {
+      document.getElementById('adminGate').hidden = false;
+      document.getElementById('adminApp').hidden  = true;
+      const msgEl = document.getElementById('adminGateMsg');
+      msgEl.textContent = msg;
+      msgEl.style.color = isError ? '#ff6b6b' : '';
+      document.getElementById('adminGateSignIn').style.display = showSignIn ? '' : 'none';
     }
 
-    if (packageForm) {
-      packageForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const added = await runAdminAction(() => addPackage({
-          title: document.getElementById('packageTitle').value.trim(),
-          price: document.getElementById('packagePrice').value.trim(),
-          features: document.getElementById('packageFeatures').value
-            .split('\n')
-            .map((feature) => feature.trim())
-            .filter(Boolean),
-          featured: document.getElementById('packageFeatured').checked
-        }).then(() => true), 'Package added.');
-        if (added) packageForm.reset();
-      });
+    function showDashboard(user) {
+      document.getElementById('adminGate').hidden = true;
+      document.getElementById('adminApp').hidden  = false;
+      // Populate sidebar user info
+      document.getElementById('sidebarUserName').textContent = user.displayName || 'Admin';
+      const avatarFallback = document.getElementById('sidebarAvatarFallback');
+      if (user.photoURL) {
+        const img = document.createElement('img');
+        img.src = user.photoURL;
+        img.className = 'user-avatar';
+        img.style.cssText = 'width:36px;height:36px;';
+        img.referrerPolicy = 'no-referrer';
+        avatarFallback.replaceWith(img);
+      }
     }
 
+    // Override the script.js admin message function so our new UI controls the gate
+    // ---- setAdminMessage is defined below after all helpers ----
+
+    // ---- Global status ----
+    function setStatus(text, type /* 'ok'|'err' */) {
+      const el = document.getElementById('adminGlobalStatus');
+      el.textContent = text || '';
+      el.className   = 'admin-status' + (text ? ` show ${type}` : '');
+      if (text) setTimeout(() => { el.classList.remove('show'); }, 4000);
+    }
+
+    // Override script.js admin action message
+    window.setAdminActionMessage = function(text, isError) {
+      setStatus(text, isError ? 'err' : 'ok');
+    };
+
+    // ---- Seed panel ----
     document.getElementById('seedSampleData').addEventListener('click', () => {
       runAdminAction(seedSampleData, 'Sample data loaded.');
     });
 
-    dropZone.addEventListener('click', () => {
-      albumImages.click();
+    // ---- Category form ----
+    const categoryForm = document.getElementById('categoryForm');
+    categoryForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const added = await runAdminAction(() => addGalleryCategory(categoryName.value), 'Category added.');
+      if (added) categoryForm.reset();
     });
 
-    dropZone.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        albumImages.click();
+    // ---- Album form ----
+    let uploadedAlbumImages = [];
+
+    function setAlbumMsg(text, isError) {
+      const el = document.getElementById('albumUploadMessage');
+      el.textContent = text;
+      el.className = 'admin-status' + (text ? ` show ${isError ? 'err' : 'ok'}` : '');
+    }
+
+    const albumForm = document.getElementById('albumForm');
+    albumForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const albumData = {
+        category   : document.getElementById('albumCategory').value,
+        title      : document.getElementById('albumTitle').value,
+        description: document.getElementById('albumDescription').value,
+        image      : document.getElementById('albumImage').value.trim(),
+        images     : uploadedAlbumImages
+      };
+      if (!albumData.category) { setAlbumMsg('Add a category first.', true); return; }
+      if (!albumData.images.length && !albumData.image) { setAlbumMsg('Choose an image or paste an image URL.', true); return; }
+      setAlbumMsg('Saving album…', false);
+      const added = await runAdminAction(() => addGalleryAlbum(albumData), 'Album added.');
+      if (added) {
+        albumForm.reset();
+        uploadedAlbumImages = [];
+        document.getElementById('albumPreviewList').innerHTML = '';
+        setAlbumMsg('', false);
+      } else {
+        setAlbumMsg('', false);
       }
     });
 
-    albumImages.addEventListener('change', (event) => {
-      handleImageUpload(event.target.files).catch((error) => setUploadMessage(error.message, true));
-    });
-
-    dropZone.addEventListener('dragover', (event) => {
-      event.preventDefault();
-      dropZone.classList.add('drag-over');
-    });
-
-    dropZone.addEventListener('dragleave', () => {
+    // Drop zone
+    const dropZone    = document.getElementById('dropZone');
+    const albumImages = document.getElementById('albumImages');
+    dropZone.addEventListener('click', () => albumImages.click());
+    dropZone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); albumImages.click(); } });
+    albumImages.addEventListener('change', e => handleImageUpload(e.target.files).catch(err => setAlbumMsg(err.message, true)));
+    dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
       dropZone.classList.remove('drag-over');
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+      handleImageUpload(files).catch(err => setAlbumMsg(err.message, true));
     });
 
-    dropZone.addEventListener('drop', (event) => {
-      event.preventDefault();
-      dropZone.classList.remove('drag-over');
-      const files = Array.from(event.dataTransfer.files).filter((file) => file.type.startsWith('image/'));
-      handleImageUpload(files).catch((error) => setUploadMessage(error.message, true));
-    });
-
-    // Resize + re-encode so several photos fit inside one Firestore document (~1 MiB).
     function compressImage(file, maxSize, quality) {
       return new Promise((resolve, reject) => {
         const url = URL.createObjectURL(file);
         const img = new Image();
         img.onload = () => {
           URL.revokeObjectURL(url);
-          const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+          const scale  = Math.min(1, maxSize / Math.max(img.width, img.height));
           const canvas = document.createElement('canvas');
-          canvas.width = Math.round(img.width * scale);
+          canvas.width  = Math.round(img.width  * scale);
           canvas.height = Math.round(img.height * scale);
           canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
           resolve(canvas.toDataURL('image/jpeg', quality));
         };
-        img.onerror = () => {
-          URL.revokeObjectURL(url);
-          reject(new Error(`Could not read ${file.name}.`));
-        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error(`Could not read ${file.name}.`)); };
         img.src = url;
       });
     }
@@ -364,49 +1194,422 @@
     async function handleImageUpload(files) {
       const fileArray = Array.from(files);
       if (!fileArray.length) return;
-      if (fileArray.some((file) => !file.type.startsWith('image/'))) {
-        throw new Error('Please select image files only.');
-      }
-      if (fileArray.length > 10) {
-        throw new Error('Please add at most 10 photos per album.');
-      }
-      if (fileArray.some((file) => file.size > 20 * 1024 * 1024)) {
-        throw new Error('Each image must be smaller than 20 MB.');
-      }
+      if (fileArray.some(f => !f.type.startsWith('image/'))) throw new Error('Please select image files only.');
+      if (fileArray.length > 10) throw new Error('Please add at most 10 photos per album.');
+      if (fileArray.some(f => f.size > 20 * 1024 * 1024)) throw new Error('Each image must be smaller than 20 MB.');
 
-      setUploadMessage('Processing images...', false);
+      setAlbumMsg('Processing images…', false);
       const attempts = [[1400, 0.8], [1100, 0.7], [900, 0.6], [700, 0.5]];
       let result = null;
       for (const [maxSize, quality] of attempts) {
-        const images = await Promise.all(fileArray.map((file) => compressImage(file, maxSize, quality)));
-        const total = images.reduce((sum, image) => sum + image.length, 0);
+        const images = await Promise.all(fileArray.map(f => compressImage(f, maxSize, quality)));
+        const total  = images.reduce((s, i) => s + i.length, 0);
         result = images;
         if (total <= MAX_ALBUM_PAYLOAD_CHARS) break;
-        if (maxSize === attempts[attempts.length - 1][0]) {
-          throw new Error('These photos are still too large for one album. Add fewer photos per album.');
-        }
+        if (maxSize === attempts[attempts.length - 1][0]) throw new Error('Photos are too large. Add fewer photos per album.');
       }
-
       uploadedAlbumImages = result;
-      albumPreviewList.innerHTML = '';
-      uploadedAlbumImages.forEach((image) => {
-        const imgElement = document.createElement('img');
-        imgElement.src = image;
-        imgElement.classList.add('preview-image');
-        albumPreviewList.appendChild(imgElement);
+      const preview = document.getElementById('albumPreviewList');
+      preview.innerHTML = '';
+      uploadedAlbumImages.forEach(src => {
+        const img = document.createElement('img');
+        img.src = src;
+        preview.appendChild(img);
       });
-      setUploadMessage(`${uploadedAlbumImages.length} image${uploadedAlbumImages.length === 1 ? '' : 's'} ready.`, false);
+      setAlbumMsg(`${uploadedAlbumImages.length} image${uploadedAlbumImages.length === 1 ? '' : 's'} ready.`, false);
     }
 
-    renderAdminDashboard();
-    // Refresh the "Online now" status every minute.
-    setInterval(() => renderAdminDashboard({ skipPackages: true }), 60000);
-
-    ['bookingSearch', 'bookingDateFrom', 'bookingDateTo', 'bookingDateFilter'].forEach((id) => {
-      const filter = document.getElementById(id);
-      const eventName = filter.type === 'search' ? 'input' : 'change';
-      filter.addEventListener(eventName, () => renderAdminDashboard({ skipPackages: true }));
+    // ---- Package form ----
+    const packageForm = document.getElementById('packageForm');
+    packageForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const added = await runAdminAction(() => addPackage({
+        title   : document.getElementById('packageTitle').value.trim(),
+        price   : document.getElementById('packagePrice').value.trim(),
+        features: document.getElementById('packageFeatures').value.split('\n').map(f => f.trim()).filter(Boolean),
+        featured: document.getElementById('packageFeatured').checked
+      }).then(() => true), 'Package added.');
+      if (added) packageForm.reset();
     });
+
+    // ---- Booking filters ----
+    ['bookingSearch', 'bookingDateFrom', 'bookingDateTo', 'bookingDateFilter'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener(el.type === 'search' ? 'input' : 'change', () => renderAdminDashboard({ skipPackages: true }));
+    });
+
+    // ---- Render override — replace script.js renderAdminDashboard with our version ----
+    // We call the original but also wire extra UI that the new shell needs.
+    const _origRenderAdminDashboard = window.renderAdminDashboard;
+
+    window.renderAdminDashboard = function(options = {}) {
+      // Let the original function do the heavy lifting
+      if (typeof _origRenderAdminDashboard === 'function') {
+        _origRenderAdminDashboard(options);
+      } else {
+        // script.js hasn't loaded yet — will be called again
+      }
+      updateNewDashboardUI();
+    };
+
+    function updateNewDashboardUI() {
+      // Stat cards
+      _setText('statBookings', document.getElementById('adminBookingCount')?.textContent);
+      _setText('statUpcoming', document.getElementById('adminUpcomingCount')?.textContent);
+      _setText('statUsers',    document.getElementById('adminUserCount')?.textContent);
+      _setText('statAlbums',   document.getElementById('adminAlbumCount')?.textContent);
+      _setText('statPackages', document.getElementById('adminPackageCount')?.textContent);
+
+      // Sidebar badges
+      const bookingCount = parseInt(document.getElementById('adminBookingCount')?.textContent) || 0;
+      const userCount    = parseInt(document.getElementById('adminUserCount')?.textContent)    || 0;
+      _setBadge('sidebarBookingBadge', bookingCount);
+      _setBadge('sidebarUserBadge',    userCount);
+
+      // Upcoming date strip
+      buildUpcomingStrip();
+
+      // Category tags row (replace old plain-text list with our styled version)
+      rebuildCategoryList();
+
+      // Album list rebuild
+      rebuildAlbumList();
+
+      // Package list rebuild
+      rebuildPackageList();
+
+      // Booking list rebuild
+      rebuildBookingList();
+
+      // User list rebuild
+      rebuildUserList();
+
+      // Clients who booked
+      rebuildClientsList();
+
+      // Seed panel
+      checkSeedPanel();
+    }
+
+    function _setText(id, val) {
+      const el = document.getElementById(id);
+      if (el && val !== undefined && val !== null) el.textContent = val;
+    }
+
+    function _setBadge(id, count) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (count > 0) { el.textContent = count; el.style.display = ''; }
+      else             el.style.display = 'none';
+    }
+
+    function buildUpcomingStrip() {
+      const container = document.getElementById('upcomingDateCards');
+      if (!container) return;
+      const allBookings = window.firebaseAdminBookings || [];
+      const today = getLocalDateKey(new Date());
+      const upcoming = allBookings.filter(b => b.date && b.date >= today);
+      upcoming.sort((a, b) => `${a.date} ${a.time || ''}`.localeCompare(`${b.date} ${b.time || ''}`));
+
+      const byDate = new Map();
+      upcoming.forEach(b => {
+        if (!byDate.has(b.date)) byDate.set(b.date, []);
+        byDate.get(b.date).push(b);
+      });
+
+      const entries = Array.from(byDate.entries()).slice(0, 8);
+      if (!entries.length) {
+        container.innerHTML = '<div class="empty-strip">No upcoming booking dates yet.</div>';
+        return;
+      }
+      container.innerHTML = entries.map(([date, bkgs]) => {
+        const d    = new Date(`${date}T00:00:00`);
+        const day  = isNaN(d) ? date : d.toLocaleDateString(undefined, { weekday: 'short' });
+        const full = isNaN(d) ? date : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        const sessions = bkgs.map(b => `<small>${escapeHTML(b.time || 'Time TBD')} · ${escapeHTML(b.name || 'Client')} — ${escapeHTML(b.service || 'Session')}</small>`).join('');
+        return `<div class="date-card">
+          <div class="date-card-day">${escapeHTML(day)}</div>
+          <div class="date-card-date">${escapeHTML(full)}</div>
+          <div class="date-card-sessions">${bkgs.length} session${bkgs.length !== 1 ? 's' : ''}${sessions}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function rebuildCategoryList() {
+      const list = document.getElementById('adminCategoryList');
+      if (!list) return;
+      const { categories, albums } = getGalleryState ? getGalleryState() : { categories: [], albums: [] };
+      if (!categories.length) {
+        list.innerHTML = '<span style="font-size:0.82rem;color:var(--text-muted)">No categories yet. Add one above.</span>';
+        return;
+      }
+      list.innerHTML = categories.map(cat => `
+        <span class="cat-tag">
+          ${escapeHTML(cat)}
+          <button type="button" data-delete-cat="${escapeHTML(cat)}" title="Delete category">✕</button>
+        </span>
+      `).join('');
+      list.querySelectorAll('[data-delete-cat]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const cat = btn.dataset.deleteCat;
+          const count = albums.filter(a => a.category === cat).length;
+          const warn  = count ? `Delete "${cat}" and its ${count} album${count !== 1 ? 's' : ''}?` : `Delete the "${cat}" category?`;
+          if (!confirm(warn)) return;
+          runAdminAction(() => deleteGalleryCategory(cat), 'Category deleted.');
+        });
+      });
+      // Also update the album category select
+      const sel = document.getElementById('albumCategory');
+      if (sel) {
+        const prev = sel.value;
+        sel.innerHTML = categories.map(c => `<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join('');
+        if (prev && categories.includes(prev)) sel.value = prev;
+      }
+    }
+
+    function rebuildAlbumList() {
+      const list = document.getElementById('adminAlbumList');
+      if (!list) return;
+      const { albums } = getGalleryState ? getGalleryState() : { albums: [] };
+      if (!albums.length) {
+        list.innerHTML = '<div class="data-empty">No albums yet. Add one above.</div>';
+        return;
+      }
+      list.innerHTML = albums.map(album => {
+        const img = getSiteImageUrl((album.images && album.images[0]) || album.image || '');
+        const count = album.images && album.images.length > 1 ? ` · ${album.images.length} photos` : '';
+        return `<div class="album-item">
+          <img src="${escapeHTML(img)}" alt="${escapeHTML(album.title)}" />
+          <div class="album-item-info">
+            <strong>${escapeHTML(album.title)}</strong>
+            <span>${escapeHTML(album.category)}</span>
+            <small>${escapeHTML(album.description)}${count}</small>
+          </div>
+          <button type="button" class="btn-mini danger" data-delete-album="${escapeHTML(album.id)}">Remove</button>
+        </div>`;
+      }).join('');
+      list.querySelectorAll('[data-delete-album]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (!confirm('Remove this album?')) return;
+          runAdminAction(() => deleteGalleryAlbum(btn.dataset.deleteAlbum), 'Album removed.');
+        });
+      });
+    }
+
+    function rebuildPackageList() {
+      const list = document.getElementById('adminPackageList');
+      if (!list) return;
+      const packages = typeof getPackages === 'function' ? getPackages() : [];
+      if (!packages.length) {
+        list.innerHTML = '<div class="data-empty" style="margin-top:0.5rem">No packages yet. Add one above.</div>';
+        return;
+      }
+      list.innerHTML = packages.map(pkg => `
+        <div class="package-item">
+          <div class="package-item-head">
+            <strong>${escapeHTML(pkg.title)}</strong>
+            <span class="pkg-price">${escapeHTML(pkg.price)}</span>
+          </div>
+          <form data-pkg-form="${escapeHTML(pkg.id)}">
+            <div class="admin-form-grid" style="margin-bottom:0.75rem;">
+              <div class="form-field">
+                <label>Package name</label>
+                <input name="title" value="${escapeHTML(pkg.title)}" required />
+              </div>
+              <div class="form-field">
+                <label>Price</label>
+                <input name="price" value="${escapeHTML(pkg.price)}" required />
+              </div>
+            </div>
+            <div class="form-field" style="margin-bottom:0.75rem;">
+              <label>Features (one per line)</label>
+              <textarea name="features" rows="3">${escapeHTML((pkg.features || []).join('\n'))}</textarea>
+            </div>
+            <div class="package-item-actions">
+              <label class="toggle-label">
+                <input name="featured" type="checkbox" ${pkg.featured ? 'checked' : ''} />
+                Highlighted
+              </label>
+              <button type="submit" class="btn-mini save">Save</button>
+              <button type="button" class="btn-mini danger" data-delete-pkg="${escapeHTML(pkg.id)}">Delete</button>
+            </div>
+          </form>
+        </div>
+      `).join('');
+
+      list.querySelectorAll('[data-pkg-form]').forEach(form => {
+        form.addEventListener('submit', e => {
+          e.preventDefault();
+          const fd = new FormData(form);
+          runAdminAction(() => updatePackage(form.dataset.pkgForm, {
+            title   : String(fd.get('title')    || '').trim(),
+            price   : String(fd.get('price')    || '').trim(),
+            features: String(fd.get('features') || '').split('\n').map(f => f.trim()).filter(Boolean),
+            featured: fd.has('featured')
+          }), 'Package saved.');
+        });
+      });
+      list.querySelectorAll('[data-delete-pkg]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (!confirm('Delete this package?')) return;
+          runAdminAction(() => deletePackage(btn.dataset.deletePkg), 'Package deleted.');
+        });
+      });
+    }
+
+    function rebuildBookingList() {
+      const list = document.getElementById('adminBookingList');
+      if (!list) return;
+      const allBookings     = window.firebaseAdminBookings;
+      const canManage       = allBookings !== null;
+      const searchTerm      = (document.getElementById('bookingSearch')?.value || '').toLowerCase().trim();
+      const dateFrom        = document.getElementById('bookingDateFrom')?.value || '';
+      const dateTo          = document.getElementById('bookingDateTo')?.value   || '';
+      const dateFilter      = document.getElementById('bookingDateFilter')?.value || 'all';
+      const today           = getLocalDateKey(new Date());
+      const source          = canManage ? allBookings : (typeof getBookings === 'function' ? getBookings() : []);
+
+      const bookings = source.filter(b => {
+        const date  = String(b.date || '');
+        const haystack = [b.name, b.email, b.accountEmail, b.phone, b.service, date, b.notes].join(' ').toLowerCase();
+        return (!searchTerm || haystack.includes(searchTerm))
+          && (!dateFrom || date >= dateFrom)
+          && (!dateTo   || date <= dateTo)
+          && (dateFilter === 'all' || (dateFilter === 'upcoming' ? date >= today : date < today));
+      }).sort((a, b) => `${a.date || ''} ${a.time || ''}`.localeCompare(`${b.date || ''} ${b.time || ''}`));
+
+      if (!bookings.length) {
+        list.innerHTML = `<div class="data-empty">${(allBookings || []).length ? 'No bookings match these filters.' : 'No bookings yet.'}</div>`;
+        return;
+      }
+      const today2 = getLocalDateKey(new Date());
+      list.innerHTML = bookings.map(b => {
+        const isUpcoming = b.date && b.date >= today2;
+        const pill = `<span class="booking-pill ${isUpcoming ? 'upcoming' : 'past'}">${isUpcoming ? '● Upcoming' : '✓ Past'}</span>`;
+        return `<div class="booking-item">
+          <div>
+            <div class="booking-item-name">${escapeHTML(b.name || 'Guest')}</div>
+            <div class="booking-item-email">${escapeHTML(b.email || 'No email')}</div>
+            ${b.phone ? `<div class="booking-item-phone">📞 ${escapeHTML(b.phone)}</div>` : ''}
+            ${b.accountEmail ? `<div class="booking-item-phone" style="color:var(--gold);font-size:0.75rem;">Google: ${escapeHTML(b.accountEmail)}</div>` : ''}
+            ${pill}
+            ${b.notes ? `<div style="font-size:0.78rem;color:var(--text-muted);margin-top:0.4rem;">${escapeHTML(b.notes)}</div>` : ''}
+          </div>
+          <div class="booking-item-meta">
+            <div class="booking-item-service">${escapeHTML(b.service || 'Session')}</div>
+            <div class="booking-item-date">📅 ${escapeHTML(formatAppointment(b.date, b.time))}</div>
+            ${b.createdAt ? `<div class="booking-item-booked">Booked: ${escapeHTML(formatBookingDate(b.createdAt))}</div>` : ''}
+            ${canManage && b.id ? `<button type="button" class="btn-mini danger" style="margin-top:0.5rem;" data-del-booking="${escapeHTML(b.id)}">Delete</button>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+      list.querySelectorAll('[data-del-booking]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (!confirm('Delete this booking?')) return;
+          runAdminAction(() => deleteBooking(btn.dataset.delBooking), 'Booking deleted.');
+        });
+      });
+    }
+
+    function rebuildUserList() {
+      const list = document.getElementById('adminUserList');
+      if (!list) return;
+      const users    = window.firebaseAdminUsers    || [];
+      const bookings = window.firebaseAdminBookings || [];
+      if (!users.length) {
+        list.innerHTML = '<div class="data-empty">No signed-in users yet.</div>';
+        return;
+      }
+      list.innerHTML = users.map(user => {
+        const lastSeen = user.lastSeenAt && typeof user.lastSeenAt.toDate === 'function'
+          ? user.lastSeenAt.toDate()
+          : (user.lastSeenAt ? new Date(user.lastSeenAt) : null);
+        const hasLS    = lastSeen && !isNaN(lastSeen.getTime());
+        const isOnline = hasLS && Date.now() - lastSeen.getTime() < 5 * 60 * 1000;
+        const lsText   = hasLS ? lastSeen.toLocaleString() : 'Not available';
+        const userBkgs = bookings.filter(b => b.uid === user.uid);
+        const bkgSummary = userBkgs.length
+          ? `${userBkgs.length} booking${userBkgs.length !== 1 ? 's' : ''}: ${userBkgs.map(b => formatAppointment(b.date, b.time)).join(', ')}`
+          : 'No bookings yet';
+        const avatarHtml = user.photoURL
+          ? `<img src="${escapeHTML(user.photoURL)}" class="user-avatar" referrerpolicy="no-referrer" alt="" />`
+          : `<div class="user-avatar-fallback">${escapeHTML((user.displayName || 'U')[0].toUpperCase())}</div>`;
+        return `<div class="user-item">
+          ${avatarHtml}
+          <div class="user-info">
+            <strong>${escapeHTML(user.displayName || 'Google user')}</strong>
+            <span>${escapeHTML(user.email || 'No email')}</span>
+            <small>${escapeHTML(bkgSummary)}</small>
+          </div>
+          <div class="user-status">
+            ${isOnline ? '<span class="online">● Online now</span>' : '<span>Last seen</span>'}
+            <span class="last-seen">${escapeHTML(lsText)}</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function rebuildClientsList() {
+      const list = document.getElementById('adminBookedClientsList');
+      if (!list) return;
+      const bookings = window.firebaseAdminBookings || [];
+      const users    = window.firebaseAdminUsers    || [];
+      const groups   = new Map();
+      bookings.forEach(b => {
+        const key = b.uid || b.accountEmail || b.email || b.id;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(b);
+      });
+      if (!groups.size) {
+        list.innerHTML = '<div class="data-empty">No clients have booked yet.</div>';
+        return;
+      }
+      list.innerHTML = Array.from(groups.entries()).map(([key, list2]) => {
+        const user    = users.find(u => u.uid === key);
+        const name    = (user && user.displayName) || list2[0].name || 'Client';
+        const email   = (user && user.email) || list2[0].accountEmail || list2[0].email || '';
+        const sorted  = list2.slice().sort((a, b2) => String(a.date || '').localeCompare(String(b2.date || '')));
+        const avatar  = user && user.photoURL
+          ? `<img src="${escapeHTML(user.photoURL)}" class="user-avatar" referrerpolicy="no-referrer" alt="" style="width:44px;height:44px;" />`
+          : `<div class="user-avatar-fallback">${escapeHTML(name[0].toUpperCase())}</div>`;
+        const sessions = sorted.map(b => `<small>${escapeHTML(formatAppointment(b.date, b.time))} — ${escapeHTML(b.service || 'Session')}${b.createdAt ? ` (booked ${escapeHTML(formatBookingDate(b.createdAt))})` : ''}</small>`).join('');
+        return `<div class="client-item">
+          ${avatar}
+          <div class="client-sessions">
+            <strong>${escapeHTML(name)}</strong>
+            <span>${escapeHTML(email)}</span>
+            ${sessions}
+          </div>
+          <div class="client-count">${list2.length} booking${list2.length !== 1 ? 's' : ''}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function checkSeedPanel() {
+      const panel = document.getElementById('seedPanel');
+      if (!panel) return;
+      const loaded  = window.siteData && window.siteData.categories !== null && window.siteData.albums !== null && window.siteData.packages !== null;
+      const isEmpty = loaded && !window.siteData.categories.length && !window.siteData.albums.length && !window.siteData.packages.length;
+      panel.hidden = !isEmpty;
+    }
+
+    // ---- Override setAdminMessage (called by script.js) ----
+    // script.js calls setAdminMessage() to show/hide the admin gate.
+    // We intercept it here so our new gate UI takes over.
+    window.setAdminMessage = function(message, isError, showSignIn = false) {
+      if (!message) {
+        // Empty message = admin verified. Show dashboard.
+        const user = typeof firebaseCurrentUser !== 'undefined' ? firebaseCurrentUser : null;
+        if (user) showDashboard(user);
+        return;
+      }
+      showGate(message, isError, showSignIn);
+    };
+
+    // Start
+    renderAdminDashboard();
+    setInterval(() => renderAdminDashboard({ skipPackages: true }), 60000);
   </script>
 </body>
 </html>

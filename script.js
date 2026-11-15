@@ -626,6 +626,10 @@ function renderTestimonialPackages() {
 const MAX_ALBUM_PAYLOAD_CHARS = 900000; // Firestore documents are limited to ~1 MiB
 
 function setAdminActionMessage(text, isError) {
+  if (typeof window.setAdminActionMessage === 'function' && window.setAdminActionMessage !== setAdminActionMessage) {
+    window.setAdminActionMessage(text, isError);
+    return;
+  }
   const element = document.getElementById('adminActionMessage');
   if (!element) return;
   element.textContent = text || '';
@@ -1091,6 +1095,10 @@ function closeMobileMenu() {
 }
 
 function setAdminMessage(message, isError, showSignIn = false) {
+  // Allow the new admin dashboard shell to intercept this call
+  if (typeof window.setAdminMessage === 'function' && window.setAdminMessage !== setAdminMessage) {
+    window.setAdminMessage(message, isError, showSignIn);
+  }
   const status = document.getElementById('adminAccessMessage');
   const grid = document.getElementById('adminDashboard');
   if (status) {
@@ -1299,4 +1307,51 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 window.getSignedInUser = getSignedInUser;
-window.persistBooking = persistBooking;
+window.persistBooking  = persistBooking;
+
+// Expose data references so the admin dashboard shell can read them
+Object.defineProperty(window, 'firebaseAdminBookings', {
+  get: () => typeof firebaseAdminBookings !== 'undefined' ? firebaseAdminBookings : null,
+  configurable: true
+});
+Object.defineProperty(window, 'firebaseAdminUsers', {
+  get: () => typeof firebaseAdminUsers !== 'undefined' ? firebaseAdminUsers : null,
+  configurable: true
+});
+Object.defineProperty(window, 'siteData', {
+  get: () => siteData,
+  configurable: true
+});
+window.getGalleryState = getGalleryState;
+window.getPackages     = getPackages;
+window.getSiteImageUrl = getSiteImageUrl;
+window.escapeHTML      = escapeHTML;
+window.formatAppointment  = formatAppointment;
+window.formatBookingDate  = formatBookingDate;
+window.getLocalDateKey    = getLocalDateKey;
+window.addGalleryCategory  = addGalleryCategory;
+window.deleteGalleryCategory = deleteGalleryCategory;
+window.addGalleryAlbum   = addGalleryAlbum;
+window.deleteGalleryAlbum = deleteGalleryAlbum;
+window.addPackage    = addPackage;
+window.updatePackage = updatePackage;
+window.deletePackage = deletePackage;
+window.deleteBooking = deleteBooking;
+window.seedSampleData = seedSampleData;
+window.runAdminAction = runAdminAction;
+window.MAX_ALBUM_PAYLOAD_CHARS = MAX_ALBUM_PAYLOAD_CHARS;
+window.renderAdminDashboard    = renderAdminDashboard;
+
+// Expose auth variables for admin shell
+Object.defineProperty(window, 'firebaseCurrentUser', {
+  get: () => firebaseCurrentUser,
+  configurable: true
+});
+Object.defineProperty(window, 'firebaseAuth', {
+  get: () => firebaseAuth,
+  configurable: true
+});
+Object.defineProperty(window, 'firebaseAuthModule', {
+  get: () => firebaseAuthModule,
+  configurable: true
+});
