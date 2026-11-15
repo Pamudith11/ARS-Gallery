@@ -8,7 +8,7 @@ service cloud.firestore {
     function isAdmin() {
       return signedIn()
         && request.auth.uid == 'OMGd04Xx0AXMw4m45ATzLR48BOE2'
-        && request.auth.token.firebase.sign_in_provider == 'password';
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
     }
 
     // Clients can only be signed in through Google.

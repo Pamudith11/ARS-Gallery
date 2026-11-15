@@ -21,7 +21,7 @@ export function getFirebaseAuthErrorMessage(error) {
     return 'Firebase could not find this app’s Authentication configuration. Confirm the web app config in firebase-client.js belongs to ars-gallery-9ea0e, then check Firebase Console > Authentication and enable Google sign-in.';
   }
   if (error.code === 'auth/operation-not-allowed') {
-    return 'This sign-in method is disabled. Enable Google and Email/Password under Firebase Console > Authentication > Sign-in method.';
+    return 'Google sign-in is disabled. Enable Google under Firebase Console > Authentication > Sign-in method.';
   }
   if (error.code === 'auth/unauthorized-domain') {
     return `Add "${location.hostname}" to Firebase Console > Authentication > Settings > Authorized domains.`;

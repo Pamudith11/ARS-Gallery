@@ -7,13 +7,9 @@ import {
 
 const button = document.getElementById('googleSignInButton');
 const message = document.getElementById('authMessage');
-const adminSignInForm = document.getElementById('adminSignInForm');
-const adminSignInSection = document.getElementById('adminSignInSection');
-const adminSignInToggle = document.getElementById('toggleAdminSignIn');
 let services;
 let redirecting = false;
 let rejecting = false;
-let pendingMethod = null; // 'google' (clients) or 'password' (admin) for the sign-in the user just started
 
 function getRedirectTarget(user) {
   const page = user.uid === adminUid ? 'admin.html' : 'index.html';
@@ -32,12 +28,6 @@ function getSignInErrorMessage(error) {
   }
   if (error.code === 'auth/popup-closed-by-user') {
     return 'The Google sign-in window was closed before sign-in completed.';
-  }
-  if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-    return 'Email or password is incorrect.';
-  }
-  if (error.code === 'auth/weak-password') {
-    return 'The password must contain at least 6 characters.';
   }
   return getFirebaseAuthErrorMessage(error);
 }
@@ -74,50 +64,32 @@ async function savePendingBooking(user) {
   sessionStorage.removeItem('ars_pending_booking');
 }
 
-function enableControls() {
-  document.querySelectorAll('.signin-card button').forEach((control) => { control.disabled = false; });
-}
-
 async function rejectSignIn(text) {
   rejecting = true;
   try {
     await services.authModule.signOut(services.auth);
   } finally {
-    pendingMethod = null;
     rejecting = false;
-    enableControls();
+    button.disabled = false;
     showMessage(text, true);
   }
 }
 
-async function finishSignIn(user, method) {
+async function finishSignIn(user) {
   if (redirecting || rejecting) return;
-  const isAdminUser = user.uid === adminUid;
   const hasGoogle = user.providerData.some((provider) => provider.providerId === 'google.com');
 
-  // Clients: Google only. Admin: email + password only.
-  if (method === 'google' && isAdminUser) {
-    await rejectSignIn('The admin account cannot use Google sign-in. Use Admin Sign In with the admin email and password.');
-    return;
-  }
-  if (method === 'password' && !isAdminUser) {
-    await rejectSignIn(`Email and password sign-in is for the admin only. Clients, please continue with Google. (This account's UID is ${user.uid}. If this is the admin account, this exact UID must be set as adminUid in firebase-client.js and in firestore.rules.)`);
-    return;
-  }
-  if (!method && !isAdminUser && !hasGoogle) {
-    await rejectSignIn('Clients must sign in with Google.');
+  if (!hasGoogle) {
+    await rejectSignIn('Please sign in with your Google account.');
     return;
   }
 
   redirecting = true;
   button.disabled = true;
   showMessage('', false);
-  try {
-    await recordSignedInUser(user, services);
-  } catch (error) {
-    showMessage(`Signed in successfully, but last-seen activity could not be saved: ${error.message}`, true);
-    await new Promise((resolve) => setTimeout(resolve, 2200));
-  }
+  recordSignedInUser(user, services).catch((error) => {
+    console.error('Could not update signed-in user activity:', error);
+  });
   try {
     await savePendingBooking(user);
   } catch (error) {
@@ -133,7 +105,7 @@ async function initializeSignIn() {
   try {
     services = await getFirebaseServices();
     services.authModule.onAuthStateChanged(services.auth, (user) => {
-      if (user) finishSignIn(user, pendingMethod);
+      if (user) finishSignIn(user);
     }, (error) => {
       showMessage(`Firebase sign-in error: ${getSignInErrorMessage(error)}`, true);
     });
@@ -149,40 +121,19 @@ function handleGoogleSignIn() {
       services = firebaseServices;
       const provider = new services.authModule.GoogleAuthProvider();
       return services.authModule.signInWithPopup(services.auth, provider);
-    }), 'google');
+    }));
 }
 
-function runSignIn(signIn, method) {
-  const controls = [button, ...adminSignInForm.querySelectorAll('button')];
-  controls.forEach((control) => { control.disabled = true; });
+function runSignIn(signIn) {
+  button.disabled = true;
   showMessage('', false);
-  pendingMethod = method;
   Promise.resolve()
     .then(signIn)
     .catch((error) => {
-      pendingMethod = null;
-      controls.forEach((control) => { control.disabled = false; });
+      button.disabled = false;
       showMessage(getSignInErrorMessage(error), true);
     });
 }
-
-adminSignInForm.addEventListener('submit', (event) => {
-  event.preventDefault();
-  const email = document.getElementById('adminEmail').value.trim();
-  const password = document.getElementById('adminPassword').value;
-  runSignIn(async () => {
-    services = await getFirebaseServices();
-    await services.authModule.signInWithEmailAndPassword(services.auth, email, password);
-  }, 'password');
-});
-
-adminSignInToggle.addEventListener('click', () => {
-  const isExpanded = adminSignInToggle.getAttribute('aria-expanded') === 'true';
-  adminSignInToggle.setAttribute('aria-expanded', String(!isExpanded));
-  adminSignInSection.hidden = isExpanded;
-  adminSignInToggle.textContent = isExpanded ? 'Admin Sign In' : 'Hide Admin Sign In';
-  if (!isExpanded) document.getElementById('adminEmail').focus();
-});
 
 button.addEventListener('click', handleGoogleSignIn);
 window.handleGoogleSignIn = handleGoogleSignIn;

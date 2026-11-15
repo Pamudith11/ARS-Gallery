@@ -175,11 +175,10 @@ function normalizeAlbum(album, index) {
 
 function getGalleryState() {
   if (siteData.categories === null || siteData.albums === null) {
-    return siteData.failed ? getDefaultGalleryState() : { categories: [], albums: [] };
+    if (!siteData.failed) return { categories: [], albums: [] };
+    const defaults = getDefaultGalleryState();
+    return { categories: defaults.categories, albums: defaults.albums.map(normalizeAlbum) };
   }
-  const isEmpty = !siteData.categories.length && !siteData.albums.length;
-  // Visitors see the sample content until the admin adds real data.
-  if (isEmpty && !isAdminPage()) return getDefaultGalleryState();
   return {
     categories: siteData.categories.map((category) => category.name),
     albums: siteData.albums.map(normalizeAlbum)
@@ -227,8 +226,15 @@ function getPackages() {
   if (siteData.packages === null) {
     return siteData.failed ? getDefaultPackages() : [];
   }
-  if (!siteData.packages.length && !isAdminPage()) return getDefaultPackages();
   return siteData.packages;
+}
+
+function getSiteImageUrl(value) {
+  const image = String(value || '').trim().replace(/\\/g, '/');
+  if (!image || /^(data:|https?:|blob:|\/)/i.test(image)) return image;
+  const rootRelativeImage = image.replace(/^(?:\.\.\/)+/, '').replace(/^\.\//, '');
+  const rootPrefix = /\/pages\//i.test(window.location.pathname) ? '../' : '';
+  return `${rootPrefix}${rootRelativeImage}`;
 }
 
 function renderGalleryPage() {
@@ -245,8 +251,8 @@ function renderGalleryPage() {
     ...categoryNames.map((category) => `<button class="gf" data-f="${escapeHTML(slugify(category))}">${escapeHTML(category)}</button>`)
   ].join('');
 
-  grid.innerHTML = (state.albums || []).map((album) => {
-    const primaryImage = escapeHTML((album.images && album.images[0]) || '');
+  grid.innerHTML = (state.albums || []).length ? state.albums.map((album) => {
+    const primaryImage = escapeHTML(getSiteImageUrl((album.images && album.images[0]) || ''));
     return `
       <div class="gal-item" data-cat="${escapeHTML(slugify(album.category))}">
         <img src="${primaryImage}" alt="${escapeHTML(album.title)}" loading="lazy" />
@@ -257,7 +263,7 @@ function renderGalleryPage() {
         </div>
       </div>
     `;
-  }).join('');
+  }).join('') : '<p class="empty-state gallery-empty-state">New photos are coming soon.</p>';
 
   bindGalleryFilters();
 }
@@ -304,7 +310,7 @@ function renderAdminSetupPanel() {
   panel.hidden = !isEmpty;
   text.classList.remove('auth-error');
   if (isEmpty) {
-    text.textContent = 'Your gallery database is empty, so visitors currently see built-in sample content. Load the sample categories, albums and packages to start editing them.';
+    text.textContent = 'Your gallery database is empty, so visitors will see no albums or packages until you add them. Load sample content to get started.';
     if (seedButton) seedButton.hidden = false;
   }
 }
@@ -321,6 +327,41 @@ function renderAdminDashboard(options = {}) {
 
   renderAdminSetupPanel();
   const state = getGalleryState();
+  const allBookings = firebaseAdminBookings || [];
+  const upcomingBookings = allBookings.filter((booking) => booking.date && booking.date >= getLocalDateKey(new Date()));
+  const statValues = {
+    adminBookingCount: firebaseAdminBookings === null ? '—' : allBookings.length,
+    adminUpcomingCount: firebaseAdminBookings === null ? '—' : upcomingBookings.length,
+    adminUserCount: firebaseAdminUsers === null ? '—' : firebaseAdminUsers.length,
+    adminAlbumCount: state.albums.length,
+    adminPackageCount: getPackages().length
+  };
+  Object.entries(statValues).forEach(([id, value]) => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+  });
+
+  const bookingCalendar = document.getElementById('adminBookingCalendar');
+  if (bookingCalendar) {
+    const byDate = new Map();
+    upcomingBookings
+      .slice()
+      .sort((a, b) => `${a.date} ${a.time || ''}`.localeCompare(`${b.date} ${b.time || ''}`))
+      .forEach((booking) => {
+        if (!byDate.has(booking.date)) byDate.set(booking.date, []);
+        byDate.get(booking.date).push(booking);
+      });
+    const upcomingDates = Array.from(byDate.entries()).slice(0, 6);
+    bookingCalendar.innerHTML = upcomingDates.length
+      ? upcomingDates.map(([date, bookings]) => `
+        <article class="admin-date-card">
+          <strong>${escapeHTML(formatAppointment(date, ''))}</strong>
+          <span>${bookings.length} session${bookings.length === 1 ? '' : 's'}</span>
+          ${bookings.map((booking) => `<small>${escapeHTML(booking.time || 'Time not set')} · ${escapeHTML(booking.name || 'Client')} — ${escapeHTML(booking.service || 'Session')}</small>`).join('')}
+        </article>
+      `).join('')
+      : '<div class="empty-state">No upcoming booking dates yet.</div>';
+  }
 
   if (categoryList) {
     categoryList.innerHTML = state.categories.map((category) => `
@@ -353,7 +394,7 @@ function renderAdminDashboard(options = {}) {
 
   if (albumList) {
     albumList.innerHTML = (state.albums || []).map((album) => {
-      const images = album.images && album.images.length ? album.images : [''];
+      const images = album.images && album.images.length ? album.images.map(getSiteImageUrl) : [''];
       return `
         <div class="admin-album-item">
           <img src="${escapeHTML(images[0])}" alt="${escapeHTML(album.title)}" />
@@ -423,9 +464,25 @@ function renderAdminDashboard(options = {}) {
 
   if (bookingList) {
     const canManageBookings = firebaseAdminBookings !== null;
-    const bookings = canManageBookings ? firebaseAdminBookings : getBookings();
+    const searchTerm = (document.getElementById('bookingSearch')?.value || '').trim().toLowerCase();
+    const dateFrom = document.getElementById('bookingDateFrom')?.value || '';
+    const dateTo = document.getElementById('bookingDateTo')?.value || '';
+    const dateFilter = document.getElementById('bookingDateFilter')?.value || 'all';
+    const today = getLocalDateKey(new Date());
+    const bookings = (canManageBookings ? firebaseAdminBookings : getBookings())
+      .filter((booking) => {
+        const date = String(booking.date || '');
+        const searchable = [booking.name, booking.email, booking.accountEmail, booking.phone, booking.service, date, booking.notes]
+          .join(' ')
+          .toLowerCase();
+        return (!searchTerm || searchable.includes(searchTerm))
+          && (!dateFrom || date >= dateFrom)
+          && (!dateTo || date <= dateTo)
+          && (dateFilter === 'all' || (dateFilter === 'upcoming' ? date >= today : date < today));
+      })
+      .sort((a, b) => `${a.date || ''} ${a.time || ''}`.localeCompare(`${b.date || ''} ${b.time || ''}`));
     if (!bookings.length) {
-      bookingList.innerHTML = '<div class="empty-state">No bookings yet.</div>';
+      bookingList.innerHTML = `<div class="empty-state">${allBookings.length ? 'No bookings match these filters.' : 'No bookings yet.'}</div>`;
     } else {
       bookingList.innerHTML = bookings.map((booking) => `
         <div class="admin-booking-item">
@@ -536,6 +593,14 @@ function formatAppointment(date, time) {
   return time ? `${dateText} • ${time}` : dateText;
 }
 
+function getLocalDateKey(date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0')
+  ].join('-');
+}
+
 function formatBookingDate(value) {
   const date = value && typeof value.toDate === 'function'
     ? value.toDate()
@@ -547,13 +612,14 @@ function renderTestimonialPackages() {
   const container = document.getElementById('testimonialPackages');
   if (!container) return;
   if (isSiteDataLoading()) return; // keep the static markup until Firestore answers
-  container.innerHTML = getPackages().map((item) => `
+  const packages = getPackages();
+  container.innerHTML = packages.length ? packages.map((item) => `
     <article class="package-card${item.featured ? ' featured' : ''}">
       <h3>${escapeHTML(item.title)}</h3>
       <p class="package-price">${escapeHTML(item.price)}</p>
       <ul>${(item.features || []).map((feature) => `<li>${escapeHTML(feature)}</li>`).join('')}</ul>
     </article>
-  `).join('');
+  `).join('') : '<p class="empty-state package-empty-state">Photography packages will be announced soon.</p>';
 }
 
 /* ---- ADMIN DATA (Firestore) ---- */
@@ -581,7 +647,7 @@ async function runAdminAction(action, successMessage) {
 
 function getAdminErrorMessage(error) {
   if (error && error.code === 'permission-denied') {
-    return 'Permission denied. Make sure the updated firestore.rules are published and you are signed in with the admin account.';
+    return 'Permission denied. Publish the updated firestore.rules and sign in with the authorized admin Google account.';
   }
   return (error && error.message) || 'Something went wrong. Please try again.';
 }
@@ -1034,7 +1100,7 @@ function setAdminMessage(message, isError, showSignIn = false) {
       const signInLink = document.createElement('a');
       signInLink.className = 'admin-signin-link';
       signInLink.href = 'signin.html?returnTo=admin.html';
-      signInLink.textContent = 'Admin sign in';
+      signInLink.textContent = 'Sign in with Google';
       status.append(document.createElement('br'), signInLink);
     }
     status.hidden = !message;
@@ -1092,7 +1158,7 @@ async function handleFirebaseAuthState(user) {
   if (!user) {
     stopAdminDataListeners();
     setAdminMessage(isAdminPage
-      ? 'Sign in with the admin email and password to open this dashboard.'
+      ? 'Sign in with the authorized admin Google account to open this dashboard.'
       : '', false, isAdminPage);
     return;
   }
@@ -1115,7 +1181,7 @@ async function handleFirebaseAuthState(user) {
   if (isAdminPage) {
     if (!isAdmin) {
       stopAdminDataListeners();
-      setAdminMessage('Access denied. Sign in with the authorized admin account to use the admin panel.', true);
+      setAdminMessage('Access denied. Sign in with the authorized admin Google account to use the admin panel.', true);
       return;
     }
     setAdminMessage('', false);

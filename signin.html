@@ -19,35 +19,11 @@
     <section class="auth-dialog signin-card" aria-labelledby="signinTitle">
       <p class="tag">ARS Gallery</p>
       <h1 id="signinTitle">Welcome <em>back</em></h1>
-      <p class="auth-demo-note">Sign in with your Google account to continue or book a photography session.</p>
+      <p class="auth-demo-note">Sign in with your Gmail / Google account to continue or book a photography session.</p>
       <button id="googleSignInButton" type="button" class="google-sign-in">
         <span class="google-mark" aria-hidden="true">G</span>
-        Continue with Google
+        Sign In with Google
       </button>
-
-      <button
-        id="toggleAdminSignIn"
-        class="auth-admin-link admin-signin-toggle"
-        type="button"
-        aria-expanded="false"
-        aria-controls="adminSignInSection"
-      >Admin Sign In</button>
-
-      <section id="adminSignInSection" class="admin-signin-section" aria-labelledby="adminSignInTitle" hidden>
-        <h2 id="adminSignInTitle">Admin Sign In</h2>
-        <p class="auth-demo-note">Admin access uses the admin email and password only.</p>
-        <form id="adminSignInForm" class="signin-form">
-          <label class="auth-field">
-            <span>Admin email</span>
-            <input id="adminEmail" name="email" type="email" autocomplete="username" required />
-          </label>
-          <label class="auth-field">
-            <span>Password</span>
-            <input id="adminPassword" name="password" type="password" autocomplete="current-password" required />
-          </label>
-          <button type="submit" class="btn-primary signin-submit">Sign In to Admin Panel</button>
-        </form>
-      </section>
 
       <p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>
     </section>

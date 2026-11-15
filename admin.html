@@ -47,10 +47,11 @@
   </nav>
 
   <main>
-    <section class="page-hero page-hero-contact">
+    <section class="page-hero page-hero-contact admin-hero">
       <div class="page-hero-inner">
-        <p class="tag">Dashboard</p>
-        <h1>Admin <em>Control</em> Panel</h1>
+        <p class="tag">ARS Gallery · Studio management</p>
+        <h1>Admin <em>Dashboard</em></h1>
+        <p>Manage your bookings, clients, gallery and photography packages in one place. Saved gallery and package changes appear on the public site automatically.</p>
       </div>
     </section>
 
@@ -59,10 +60,39 @@
         <div id="adminAccessMessage" class="admin-access-message" role="status">
           Checking Firebase sign-in...
           <br />
-          <a class="admin-signin-link" href="signin.html?returnTo=admin.html">Admin sign in</a>
+          <a class="admin-signin-link" href="signin.html?returnTo=admin.html">Sign in with Google</a>
         </div>
       </div>
       <div class="container admin-grid" id="adminDashboard" hidden>
+        <div class="admin-overview full-width">
+          <div class="admin-overview-heading">
+            <div>
+              <p class="tag">Overview</p>
+              <h2>Your studio at a glance</h2>
+            </div>
+            <nav class="admin-shortcuts" aria-label="Dashboard sections">
+              <a href="#adminBookings">Bookings</a>
+              <a href="#adminGallery">Gallery</a>
+              <a href="#adminPackages">Packages</a>
+              <a href="#adminUsers">Clients</a>
+            </nav>
+          </div>
+          <div class="admin-stat-grid">
+            <article class="admin-stat-card"><span>Total bookings</span><strong id="adminBookingCount">—</strong><small>All requests received</small></article>
+            <article class="admin-stat-card"><span>Upcoming sessions</span><strong id="adminUpcomingCount">—</strong><small>Sessions still to come</small></article>
+            <article class="admin-stat-card"><span>Signed-in users</span><strong id="adminUserCount">—</strong><small>Google accounts recorded</small></article>
+            <article class="admin-stat-card"><span>Gallery albums</span><strong id="adminAlbumCount">—</strong><small>Published in your gallery</small></article>
+            <article class="admin-stat-card"><span>Packages</span><strong id="adminPackageCount">—</strong><small>Available to your clients</small></article>
+          </div>
+          <div class="admin-upcoming">
+            <div class="admin-section-heading">
+              <div><p class="tag">Schedule</p><h3>Upcoming booking dates</h3></div>
+              <a href="#adminBookings">View all bookings</a>
+            </div>
+            <div id="adminBookingCalendar" class="admin-booking-calendar" aria-live="polite"></div>
+          </div>
+        </div>
+
         <div class="admin-panel full-width" id="adminSetupPanel" hidden>
           <h3>Setup</h3>
           <p id="adminSetupMessage" class="auth-message" role="status"></p>
@@ -70,8 +100,11 @@
         </div>
         <p id="adminActionMessage" class="auth-message admin-panel full-width" role="status" aria-live="polite" hidden></p>
 
-        <div class="admin-panel">
-          <h3>Add Category</h3>
+        <div class="admin-panel" id="adminGallery">
+          <div class="admin-panel-heading">
+            <div><p class="tag">Gallery</p><h3>Categories</h3></div>
+            <span class="admin-panel-hint">Organize your albums</span>
+          </div>
           <form id="categoryForm" class="admin-form">
             <input id="categoryName" type="text" placeholder="Add category e.g. Graduation" required />
             <button type="submit" class="btn-primary">Add Category</button>
@@ -81,7 +114,10 @@
         </div>
 
         <div class="admin-panel">
-          <h3>Add Album Photo</h3>
+          <div class="admin-panel-heading">
+            <div><p class="tag">Gallery</p><h3>Add an album</h3></div>
+            <span class="admin-panel-hint">Upload up to 10 photos</span>
+          </div>
           <form id="albumForm" class="admin-form">
             <select id="albumCategory"></select>
             <input id="albumTitle" type="text" placeholder="Album title" required />
@@ -106,8 +142,11 @@
           <div class="admin-list" id="adminAlbumList"></div>
         </div>
 
-        <div class="admin-panel full-width">
-          <h3>Packages</h3>
+        <div class="admin-panel full-width" id="adminPackages">
+          <div class="admin-panel-heading">
+            <div><p class="tag">Services</p><h3>Photography packages</h3></div>
+            <span class="admin-panel-hint">Add, edit or remove your offers</span>
+          </div>
           <form id="packageForm" class="admin-form">
             <input id="packageTitle" type="text" placeholder="Package name" required />
             <input id="packagePrice" type="text" placeholder="Price (e.g. LKR 45,000)" required />
@@ -121,18 +160,32 @@
           <div class="admin-list" id="adminPackageList"></div>
         </div>
 
-        <div class="admin-panel full-width">
-          <h3>Bookings</h3>
+        <div class="admin-panel full-width" id="adminBookings">
+          <div class="admin-panel-heading">
+            <div><p class="tag">Schedule</p><h3>All bookings</h3></div>
+            <span class="admin-panel-hint">Review client details and session dates</span>
+          </div>
+          <div class="admin-filter-bar">
+            <label>Search bookings<input id="bookingSearch" type="search" placeholder="Name, email, service..." /></label>
+            <label>From<input id="bookingDateFrom" type="date" /></label>
+            <label>To<input id="bookingDateTo" type="date" /></label>
+            <label>Dates<select id="bookingDateFilter"><option value="all">All dates</option><option value="upcoming">Upcoming</option><option value="past">Past</option></select></label>
+          </div>
           <div class="admin-list" id="adminBookingList"></div>
         </div>
 
         <div class="admin-panel full-width">
-          <h3>Clients Who Booked</h3>
+          <div class="admin-panel-heading">
+            <div><p class="tag">Clients</p><h3>Clients who booked</h3></div>
+          </div>
           <div class="admin-list" id="adminBookedClientsList"></div>
         </div>
 
-        <div class="admin-panel full-width">
-          <h3>Signed-in Users</h3>
+        <div class="admin-panel full-width" id="adminUsers">
+          <div class="admin-panel-heading">
+            <div><p class="tag">Accounts</p><h3>Signed-in users</h3></div>
+            <span class="admin-panel-hint">Recent Google sign-ins and activity</span>
+          </div>
           <div class="admin-list" id="adminUserList"></div>
         </div>
       </div>
@@ -348,6 +401,12 @@
     renderAdminDashboard();
     // Refresh the "Online now" status every minute.
     setInterval(() => renderAdminDashboard({ skipPackages: true }), 60000);
+
+    ['bookingSearch', 'bookingDateFrom', 'bookingDateTo', 'bookingDateFilter'].forEach((id) => {
+      const filter = document.getElementById(id);
+      const eventName = filter.type === 'search' ? 'input' : 'change';
+      filter.addEventListener(eventName, () => renderAdminDashboard({ skipPackages: true }));
+    });
   </script>
 </body>
 </html>
