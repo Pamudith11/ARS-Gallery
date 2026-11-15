@@ -19,6 +19,7 @@ const switchPrompt = document.getElementById('switchPrompt');
 const clientTitle = document.getElementById('clientTitle');
 const clientSubtitle = document.getElementById('clientSubtitle');
 const clientMsg = document.getElementById('clientMsg');
+const clientGoogleBtn = document.getElementById('clientGoogleBtn');
 
 const adminGoogleBtn = document.getElementById('adminGoogleBtn');
 const adminMsg = document.getElementById('adminMsg');
@@ -27,6 +28,7 @@ let services;
 let redirecting = false;
 let rejecting = false;
 let isSignUpMode = false; // false = Sign In, true = Sign Up
+let authIntent = 'client'; // 'client' or 'admin'
 
 // Switch between Client Sign In and Client Sign Up modes
 function toggleAuthMode() {
@@ -157,21 +159,22 @@ async function rejectUnauthorized(targetMsgEl, reason) {
     }
   } finally {
     rejecting = false;
+    authIntent = 'client';
     if (submitBtn) submitBtn.disabled = false;
+    if (clientGoogleBtn) clientGoogleBtn.disabled = false;
     if (adminGoogleBtn) adminGoogleBtn.disabled = false;
     showMsg(targetMsgEl, reason, true);
   }
 }
 
 // Complete successful sign-in
-async function finishSignIn(user, isExplicitAdminAction = false) {
+async function finishSignIn(user) {
   if (redirecting || rejecting) return;
 
-  const isGoogle = user.providerData.some((p) => p.providerId === 'google.com');
   const isAdmin = await checkIsAdmin(user, services);
 
-  // If clicked admin Google login but NOT authorized as an admin
-  if (isGoogle && !isAdmin) {
+  // If clicked explicitly on the Admin button but NOT authorized as an admin
+  if (authIntent === 'admin' && !isAdmin) {
     await rejectUnauthorized(
       adminMsg,
       `Access Denied: Your Google account (${user.email || user.uid}) is not authorized as an Admin. Only approved administrators can access the Admin Dashboard.`
@@ -181,9 +184,10 @@ async function finishSignIn(user, isExplicitAdminAction = false) {
 
   redirecting = true;
   if (submitBtn) submitBtn.disabled = true;
+  if (clientGoogleBtn) clientGoogleBtn.disabled = true;
   if (adminGoogleBtn) adminGoogleBtn.disabled = true;
 
-  const targetMsg = isAdmin ? adminMsg : clientMsg;
+  const targetMsg = (authIntent === 'admin' && isAdmin) ? adminMsg : clientMsg;
   showMsg(targetMsg, 'Signing in...', false);
 
   try {
@@ -198,13 +202,14 @@ async function finishSignIn(user, isExplicitAdminAction = false) {
     showMsg(targetMsg, `Signed in, but pending booking could not be saved: ${error.message}`, true);
     redirecting = false;
     if (submitBtn) submitBtn.disabled = false;
+    if (clientGoogleBtn) clientGoogleBtn.disabled = false;
     if (adminGoogleBtn) adminGoogleBtn.disabled = false;
     return;
   }
 
   showMsg(targetMsg, 'Success! Redirecting...', false);
   setTimeout(() => {
-    location.replace(getRedirectTarget(user, isAdmin));
+    location.replace(getRedirectTarget(user, isAdmin && authIntent === 'admin'));
   }, 400);
 }
 
@@ -212,6 +217,7 @@ async function finishSignIn(user, isExplicitAdminAction = false) {
 if (authForm) {
   authForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    authIntent = 'client';
     const email = emailInput.value.trim();
     const password = passwordInput.value;
     const name = nameInput?.value.trim() || '';
@@ -262,9 +268,33 @@ if (authForm) {
   });
 }
 
+// Handle Client Google Sign-in
+if (clientGoogleBtn) {
+  clientGoogleBtn.addEventListener('click', async () => {
+    authIntent = 'client';
+    clientGoogleBtn.disabled = true;
+    const originalHtml = clientGoogleBtn.innerHTML;
+    clientGoogleBtn.innerHTML = '<span class="sf-spinner"></span> Connecting to Google...';
+    showMsg(clientMsg, '', false);
+
+    try {
+      services = await getFirebaseServices();
+      const provider = new services.authModule.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      await services.authModule.signInWithPopup(services.auth, provider);
+      // finishSignIn handles completion
+    } catch (error) {
+      clientGoogleBtn.disabled = false;
+      clientGoogleBtn.innerHTML = originalHtml;
+      showMsg(clientMsg, getFriendlyErrorMessage(error), true);
+    }
+  });
+}
+
 // Handle Admin Google Sign-in
 if (adminGoogleBtn) {
   adminGoogleBtn.addEventListener('click', async () => {
+    authIntent = 'admin';
     adminGoogleBtn.disabled = true;
     const originalHtml = adminGoogleBtn.innerHTML;
     adminGoogleBtn.innerHTML = '<span class="sf-spinner"></span> Connecting to Google...';
@@ -299,6 +329,7 @@ async function initializeSignIn() {
   } catch (error) {
     showMsg(clientMsg, getFriendlyErrorMessage(error), true);
     if (submitBtn) submitBtn.disabled = true;
+    if (clientGoogleBtn) clientGoogleBtn.disabled = true;
     if (adminGoogleBtn) adminGoogleBtn.disabled = true;
   }
 }

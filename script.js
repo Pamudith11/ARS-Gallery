@@ -24,6 +24,7 @@ const mobileNav = document.getElementById('mobile-nav');
 
 if (burger && mobileNav) {
   burger.addEventListener('click', () => {
+    if (!mobileNav.classList.contains('open')) closeProfileMenu();
     mobileNav.classList.toggle('open');
     const spans = burger.querySelectorAll('span');
     mobileNav.classList.contains('open')
@@ -1058,7 +1059,8 @@ function renderProfileMenu(user, isAdmin, rootPrefix) {
   nameEl.textContent = user.displayName || (isAdmin ? 'Admin' : 'Signed in');
   const emailEl = document.createElement('small');
   emailEl.textContent = user.email || '';
-  info.append(nameEl, emailEl);
+  info.append(nameEl);
+  if (user.email) info.append(emailEl);
   menu.append(info);
 
   if (isAdmin) {
@@ -1082,6 +1084,7 @@ function renderProfileMenu(user, isAdmin, rootPrefix) {
   button.addEventListener('click', (event) => {
     event.stopPropagation();
     const willOpen = menu.hidden;
+    if (willOpen) closeMobileMenu();
     menu.hidden = !willOpen;
     button.setAttribute('aria-expanded', String(willOpen));
   });
